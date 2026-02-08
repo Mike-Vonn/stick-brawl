@@ -177,11 +177,11 @@ void Game::spawnProjectile(StickFigure& shooter) {
     proj.lifetime = weapon.projectileLifetime;
     proj.alive = true;
 
-    // Check if this is a poison weapon
-    if (weapon.name == "Poison Spit") {
+    // Check if this weapon has poison properties
+    if (weapon.poisonDps > 0.0f && weapon.poisonDuration > 0.0f) {
         proj.isPoison = true;
-        proj.poisonDps = 8.0f;
-        proj.poisonDuration = 4.0f;
+        proj.poisonDps = weapon.poisonDps;
+        proj.poisonDuration = weapon.poisonDuration;
     }
 
     m_projectiles.push_back(proj);

@@ -10,6 +10,8 @@
     "ammo": -1,
     "spread_degrees": 0.0,
     "affected_by_gravity": true,
+    "poison_dps": 8.0,
+    "poison_duration": 4.0,
     "sprite": "",
     "projectile_sprite": "",
     "sound_fire": "",

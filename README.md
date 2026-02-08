@@ -33,8 +33,8 @@ stickbrawl/
 ```
 
 ## Dependencies
-- **SFML 2.6+** — Windowing, rendering, input, audio
-- **Box2D 2.4+** — 2D physics
+- **SFML 3.0+** — Windowing, rendering, input, audio
+- **Box2D 3.0+** — 2D physics (C-style API)
 - **nlohmann/json** — JSON parsing for weapon/rules configs
 
 ## Building (Windows with vcpkg)
