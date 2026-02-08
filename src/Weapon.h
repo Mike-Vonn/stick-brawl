@@ -26,6 +26,10 @@ struct WeaponData {
     // Explosive
     float       explosionRadius = 0.0f;
 
+    // Poison (damage-over-time)
+    float       poisonDps = 0.0f;
+    float       poisonDuration = 0.0f;
+
     // Assets
     std::string sprite;
     std::string projectileSprite;
