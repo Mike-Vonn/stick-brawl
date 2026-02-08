@@ -28,22 +28,35 @@ bool HUD::init() {
 
 void HUD::draw(sf::RenderTarget& target, const std::vector<std::unique_ptr<StickFigure>>& players,
                float roundTime) {
-    float barWidth = 200.0f;
-    float barHeight = 20.0f;
-    float margin = 20.0f;
+    float barWidth = 180.0f;
+    float barHeight = 18.0f;
+    float margin = 15.0f;
 
     float screenW = static_cast<float>(target.getSize().x);
+    float screenH = static_cast<float>(target.getSize().y);
 
-    // 4-corner layout: P0=top-left, P1=top-right, P2=bottom-left, P3=bottom-right
+    // Dynamic layout: top row and bottom row, distributing players
+    // Up to 5 players: top-left, top-right, bottom-left, bottom-right, top-center
     struct HudSlot { float x; float y; };
-    HudSlot slots[4] = {
-        { margin,                      margin },                        // top-left
-        { screenW - margin - barWidth, margin },                        // top-right
-        { margin,                      static_cast<float>(target.getSize().y) - margin - 55.0f }, // bottom-left
-        { screenW - margin - barWidth, static_cast<float>(target.getSize().y) - margin - 55.0f }, // bottom-right
-    };
+    std::vector<HudSlot> slots;
+    size_t n = players.size();
+    if (n <= 2) {
+        slots.push_back({ margin, margin });
+        slots.push_back({ screenW - margin - barWidth, margin });
+    } else if (n <= 4) {
+        slots.push_back({ margin, margin });
+        slots.push_back({ screenW - margin - barWidth, margin });
+        slots.push_back({ margin, screenH - margin - 50.0f });
+        slots.push_back({ screenW - margin - barWidth, screenH - margin - 50.0f });
+    } else {
+        slots.push_back({ margin, margin });
+        slots.push_back({ screenW - margin - barWidth, margin });
+        slots.push_back({ margin, screenH - margin - 50.0f });
+        slots.push_back({ screenW - margin - barWidth, screenH - margin - 50.0f });
+        slots.push_back({ (screenW - barWidth) / 2.0f, margin }); // top-center
+    }
 
-    for (size_t i = 0; i < players.size() && i < 4; i++) {
+    for (size_t i = 0; i < players.size() && i < slots.size(); i++) {
         const auto& p = players[i];
         float x = slots[i].x;
         float y = slots[i].y;

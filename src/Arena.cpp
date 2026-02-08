@@ -19,6 +19,7 @@ void Arena::createDefaultArena(Physics& physics) {
     m_spawnPoints = {
         {-10.0f, -3.5f}, { 10.0f, -3.5f},
         { -5.0f, -3.5f}, {  5.0f, -3.5f},
+        {  0.0f, -3.5f},
     };
 }
 

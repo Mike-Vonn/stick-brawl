@@ -1,0 +1,12 @@
+{
+    "name": "Horn Blast",
+    "type": "melee",
+    "damage": 25,
+    "knockback_force": 14.0,
+    "range": 3.0,
+    "attack_rate_seconds": 0.7,
+    "sprite": "",
+    "sound_hit": "",
+    "sound_swing": "",
+    "description": "A magical horn attack that blasts enemies with rainbow energy"
+}

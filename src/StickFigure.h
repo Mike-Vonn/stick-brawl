@@ -14,8 +14,22 @@ struct StickFigureConfig {
 enum class CharacterType {
     Stick,
     Cat,
-    Cobra
+    Cobra,
+    Unicorn
 };
+
+// Number of available character types
+constexpr int CHARACTER_TYPE_COUNT = 4;
+
+inline const char* characterTypeName(CharacterType t) {
+    switch (t) {
+        case CharacterType::Stick:   return "Stick";
+        case CharacterType::Cat:     return "Cat";
+        case CharacterType::Cobra:   return "Cobra";
+        case CharacterType::Unicorn: return "Unicorn";
+    }
+    return "???";
+}
 
 class StickFigure {
 public:
@@ -71,6 +85,7 @@ private:
     void drawStick(sf::RenderTarget& target) const;
     void drawCat(sf::RenderTarget& target) const;
     void drawCobra(sf::RenderTarget& target) const;
+    void drawUnicorn(sf::RenderTarget& target) const;
     void drawAttackEffect(sf::RenderTarget& target) const;
     void drawAimIndicator(sf::RenderTarget& target) const;
 

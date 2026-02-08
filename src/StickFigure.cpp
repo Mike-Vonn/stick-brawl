@@ -240,9 +240,10 @@ void StickFigure::draw(sf::RenderTarget& target) const {
     if (!isAlive()) return;
 
     switch (m_charType) {
-        case CharacterType::Cat:   drawCat(target); break;
-        case CharacterType::Cobra: drawCobra(target); break;
-        default:                   drawStick(target); break;
+        case CharacterType::Cat:     drawCat(target); break;
+        case CharacterType::Cobra:   drawCobra(target); break;
+        case CharacterType::Unicorn: drawUnicorn(target); break;
+        default:                     drawStick(target); break;
     }
 
     if (m_attackAnimTimer > 0.0f) drawAttackEffect(target);
@@ -542,12 +543,256 @@ void StickFigure::drawCobra(sf::RenderTarget& target) const {
     }
 }
 
+void StickFigure::drawUnicorn(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f c = toScreen(tp);
+    float dir = static_cast<float>(m_facingDir);
+    float t = m_animTime;
+
+    // Mane shimmer colors
+    auto rainbow = [&](float phase) -> sf::Color {
+        float r = std::sin(t * 2.0f + phase) * 0.5f + 0.5f;
+        float g = std::sin(t * 2.0f + phase + 2.094f) * 0.5f + 0.5f;
+        float b = std::sin(t * 2.0f + phase + 4.189f) * 0.5f + 0.5f;
+        return {static_cast<uint8_t>(r * 255), static_cast<uint8_t>(g * 255),
+                static_cast<uint8_t>(b * 255), 255};
+    };
+
+    // --- Body (barrel) ---
+    sf::RectangleShape body({36.0f, 20.0f});
+    body.setOrigin({18.0f, 10.0f});
+    body.setPosition(c);
+    body.setFillColor(dc);
+    body.setOutlineColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    body.setOutlineThickness(1.0f);
+    target.draw(body);
+
+    // --- Legs (4 legs with slight animation) ---
+    float gallop = std::sin(t * 8.0f);
+    b2Vec2 vel = b2Body_GetLinearVelocity(m_torso);
+    float speed = std::sqrt(vel.x * vel.x);
+    float legAnim = speed > 1.0f ? gallop * 6.0f : 0.0f;
+    float legOffsets[4] = {-0.35f, -0.12f, 0.12f, 0.35f};
+    float legPhases[4] = {0.0f, 3.14159f, 0.0f, 3.14159f}; // diagonal pairs
+    for (int i = 0; i < 4; i++) {
+        float lx = c.x + legOffsets[i] * 36.0f;
+        float anim = speed > 1.0f ? std::sin(t * 8.0f + legPhases[i]) * 6.0f : 0.0f;
+        sf::VertexArray leg(sf::PrimitiveType::Lines, 2);
+        leg[0] = sf::Vertex{{lx, c.y + 10.0f}, dc};
+        leg[1] = sf::Vertex{{lx + anim * 0.3f, c.y + 24.0f}, dc};
+        target.draw(leg);
+        // Hooves
+        sf::CircleShape hoof(2.5f);
+        hoof.setOrigin({2.5f, 2.5f});
+        hoof.setPosition({lx + anim * 0.3f, c.y + 25.0f});
+        hoof.setFillColor(sf::Color(60, 60, 60));
+        target.draw(hoof);
+    }
+
+    // --- Neck (angled up from front of body) ---
+    float neckBaseX = c.x + dir * 18.0f;
+    float neckBaseY = c.y - 6.0f;
+    float neckTopX = neckBaseX + dir * 12.0f;
+    float neckTopY = neckBaseY - 22.0f;
+    // Thick neck with convex shape
+    sf::ConvexShape neck(4);
+    neck.setPoint(0, {neckBaseX - dir * 5.0f, neckBaseY});
+    neck.setPoint(1, {neckBaseX + dir * 3.0f, neckBaseY});
+    neck.setPoint(2, {neckTopX + dir * 2.0f, neckTopY + 4.0f});
+    neck.setPoint(3, {neckTopX - dir * 4.0f, neckTopY + 4.0f});
+    neck.setFillColor(dc);
+    target.draw(neck);
+
+    // --- Head (elongated oval) ---
+    float headX = neckTopX + dir * 6.0f;
+    float headY = neckTopY;
+    sf::CircleShape headShape(8.0f);
+    headShape.setScale({1.4f, 1.0f});
+    headShape.setOrigin({8.0f, 8.0f});
+    headShape.setPosition({headX, headY});
+    headShape.setFillColor(dc);
+    headShape.setOutlineColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    headShape.setOutlineThickness(1.0f);
+    target.draw(headShape);
+
+    // Snout extension
+    sf::ConvexShape snout(4);
+    snout.setPoint(0, {headX + dir * 6.0f, headY - 3.0f});
+    snout.setPoint(1, {headX + dir * 16.0f, headY - 1.0f});
+    snout.setPoint(2, {headX + dir * 16.0f, headY + 3.0f});
+    snout.setPoint(3, {headX + dir * 6.0f, headY + 5.0f});
+    snout.setFillColor(dc);
+    snout.setOutlineColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    snout.setOutlineThickness(1.0f);
+    target.draw(snout);
+
+    // Eye
+    sf::CircleShape eye(2.5f);
+    eye.setOrigin({2.5f, 2.5f});
+    eye.setPosition({headX + dir * 4.0f, headY - 2.0f});
+    eye.setFillColor(sf::Color(50, 0, 100));
+    target.draw(eye);
+    // Eye highlight
+    sf::CircleShape eyeHighlight(1.0f);
+    eyeHighlight.setOrigin({1.0f, 1.0f});
+    eyeHighlight.setPosition({headX + dir * 4.5f, headY - 3.0f});
+    eyeHighlight.setFillColor(sf::Color::White);
+    target.draw(eyeHighlight);
+
+    // Nostril
+    sf::CircleShape nostril(1.0f);
+    nostril.setOrigin({1.0f, 1.0f});
+    nostril.setPosition({headX + dir * 14.0f, headY + 1.0f});
+    nostril.setFillColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    target.draw(nostril);
+
+    // --- Ear ---
+    sf::ConvexShape ear(3);
+    ear.setPoint(0, {headX - dir * 2.0f, headY - 6.0f});
+    ear.setPoint(1, {headX,              headY - 16.0f});
+    ear.setPoint(2, {headX + dir * 4.0f, headY - 7.0f});
+    ear.setFillColor(dc);
+    ear.setOutlineColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    ear.setOutlineThickness(1.0f);
+    target.draw(ear);
+
+    // --- HORN (magical, spiraling, with rainbow glow) ---
+    float hornBaseX = headX + dir * 2.0f;
+    float hornBaseY = headY - 12.0f;
+    float hornLen = 22.0f;
+    float hornAngle = -1.2f; // angled forward-up
+
+    // Spiral lines for the horn
+    constexpr int hornSegs = 16;
+    sf::VertexArray hornLine(sf::PrimitiveType::LineStrip, hornSegs + 1);
+    for (int i = 0; i <= hornSegs; i++) {
+        float frac = static_cast<float>(i) / static_cast<float>(hornSegs);
+        float spiralOffset = std::sin(frac * 12.0f + t * 3.0f) * (3.0f - frac * 2.5f);
+        float hx = hornBaseX + dir * std::cos(hornAngle) * hornLen * frac;
+        float hy = hornBaseY + std::sin(hornAngle) * hornLen * frac + spiralOffset;
+        sf::Color hc = rainbow(frac * 6.28f);
+        // Brighten toward tip
+        hc.r = static_cast<uint8_t>(std::min(255, hc.r + static_cast<int>(frac * 100)));
+        hc.g = static_cast<uint8_t>(std::min(255, hc.g + static_cast<int>(frac * 100)));
+        hc.b = static_cast<uint8_t>(std::min(255, hc.b + static_cast<int>(frac * 100)));
+        hornLine[i] = sf::Vertex{{hx, hy}, hc};
+    }
+    target.draw(hornLine);
+    // Thicken horn with parallel offsets
+    for (float off : {-1.5f, 1.5f, -0.7f, 0.7f}) {
+        sf::VertexArray thick(sf::PrimitiveType::LineStrip, hornSegs + 1);
+        for (int i = 0; i <= hornSegs; i++) {
+            float frac = static_cast<float>(i) / static_cast<float>(hornSegs);
+            float taper = 1.0f - frac * 0.8f;
+            thick[i] = hornLine[i];
+            thick[i].position.x += off * taper * 0.3f;
+            thick[i].position.y += off * taper;
+        }
+        target.draw(thick);
+    }
+
+    // Horn tip sparkle
+    {
+        float sparkle = std::sin(t * 10.0f) * 0.5f + 0.5f;
+        sf::Vector2f tip = hornLine[hornSegs].position;
+        sf::CircleShape spark(2.0f + sparkle * 2.0f);
+        spark.setOrigin({spark.getRadius(), spark.getRadius()});
+        spark.setPosition(tip);
+        spark.setFillColor(sf::Color(255, 255, 255, static_cast<uint8_t>(150 + sparkle * 105)));
+        target.draw(spark);
+        // Smaller colored spark
+        sf::CircleShape spark2(1.0f + sparkle * 1.5f);
+        spark2.setOrigin({spark2.getRadius(), spark2.getRadius()});
+        spark2.setPosition(tip);
+        spark2.setFillColor(rainbow(t * 3.0f));
+        target.draw(spark2);
+    }
+
+    // --- Mane (rainbow flowing hair along neck) ---
+    constexpr int maneStrands = 7;
+    for (int s = 0; s < maneStrands; s++) {
+        float sf2 = static_cast<float>(s) / static_cast<float>(maneStrands);
+        float startX = neckBaseX + (neckTopX - neckBaseX) * sf2;
+        float startY = neckBaseY + (neckTopY - neckBaseY) * sf2 - 2.0f;
+
+        sf::VertexArray strand(sf::PrimitiveType::LineStrip, 5);
+        for (int j = 0; j < 5; j++) {
+            float jf = static_cast<float>(j) / 4.0f;
+            float wave = std::sin(t * 3.0f + sf2 * 4.0f + jf * 3.0f) * (4.0f + jf * 6.0f);
+            float px = startX - dir * jf * 12.0f + wave * 0.3f;
+            float py = startY - jf * 4.0f + wave;
+            strand[j] = sf::Vertex{{px, py}, rainbow(sf2 * 6.28f + jf * 2.0f)};
+        }
+        target.draw(strand);
+    }
+
+    // --- Tail (flowing rainbow) ---
+    float tailBaseX = c.x - dir * 18.0f;
+    float tailBaseY = c.y - 2.0f;
+    constexpr int tailStrands = 5;
+    for (int s = 0; s < tailStrands; s++) {
+        float sf2 = static_cast<float>(s) / static_cast<float>(tailStrands);
+        sf::VertexArray strand(sf::PrimitiveType::LineStrip, 6);
+        for (int j = 0; j < 6; j++) {
+            float jf = static_cast<float>(j) / 5.0f;
+            float wave = std::sin(t * 2.5f + sf2 * 3.0f + jf * 4.0f) * (5.0f + jf * 8.0f);
+            float px = tailBaseX - dir * jf * 25.0f;
+            float py = tailBaseY + sf2 * 4.0f - 2.0f + wave;
+            strand[j] = sf::Vertex{{px, py}, rainbow(sf2 * 6.28f + jf * 1.5f + 3.0f)};
+        }
+        target.draw(strand);
+    }
+
+    // --- Magical particles around the unicorn (subtle sparkles) ---
+    for (int i = 0; i < 4; i++) {
+        float phase = static_cast<float>(i) * 1.57f;
+        float px = c.x + std::cos(t * 1.5f + phase) * 25.0f;
+        float py = c.y - 10.0f + std::sin(t * 2.0f + phase) * 15.0f;
+        float sz = 1.0f + std::sin(t * 5.0f + phase) * 0.8f;
+        sf::CircleShape sparkle(sz, 4); // diamond shape
+        sparkle.setOrigin({sz, sz});
+        sparkle.setPosition({px, py});
+        sparkle.setFillColor(sf::Color(255, 255, 255, static_cast<uint8_t>(80 + std::sin(t * 4.0f + phase) * 60)));
+        target.draw(sparkle);
+    }
+}
+
 void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
     sf::Vector2f sp = toScreen(getPosition());
     float dir = static_cast<float>(m_facingDir);
     float prog = 1.0f - (m_attackAnimTimer / 0.2f);
 
-    if (m_weapon.type == WeaponType::Melee) {
+    if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Unicorn) {
+        // Magical horn blast — expanding rainbow ring
+        float arcR = m_weapon.range * PPM * 0.7f * prog;
+        constexpr int particles = 12;
+        for (int i = 0; i < particles; i++) {
+            float angle = static_cast<float>(i) / static_cast<float>(particles) * 6.28318f;
+            float px = sp.x + dir * 15.0f + std::cos(angle) * arcR;
+            float py = sp.y - 15.0f + std::sin(angle) * arcR;
+            float sz = 3.0f * (1.0f - prog);
+            float phase = static_cast<float>(i) / static_cast<float>(particles) * 6.28f;
+            float r = std::sin(m_animTime * 3.0f + phase) * 0.5f + 0.5f;
+            float g = std::sin(m_animTime * 3.0f + phase + 2.094f) * 0.5f + 0.5f;
+            float b = std::sin(m_animTime * 3.0f + phase + 4.189f) * 0.5f + 0.5f;
+            sf::CircleShape dot(sz, 4);
+            dot.setOrigin({sz, sz}); dot.setPosition({px, py});
+            dot.setFillColor(sf::Color(
+                static_cast<uint8_t>(r * 255),
+                static_cast<uint8_t>(g * 255),
+                static_cast<uint8_t>(b * 255),
+                static_cast<uint8_t>(220 * (1.0f - prog))));
+            target.draw(dot);
+        }
+        // Central flash
+        float flashSz = 8.0f * (1.0f - prog);
+        sf::CircleShape flash(flashSz);
+        flash.setOrigin({flashSz, flashSz});
+        flash.setPosition({sp.x + dir * 15.0f, sp.y - 15.0f});
+        flash.setFillColor(sf::Color(255, 255, 255, static_cast<uint8_t>(180 * (1.0f - prog))));
+        target.draw(flash);
+    } else if (m_weapon.type == WeaponType::Melee) {
         float arcR = m_weapon.range * PPM * 0.6f;
         int segs = 8;
         for (int i = 0; i <= segs; i++) {

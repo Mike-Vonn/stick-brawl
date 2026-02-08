@@ -2,6 +2,8 @@
 #include <SFML/Window.hpp>
 #include <array>
 
+constexpr int MAX_PLAYERS = 5;
+
 struct PlayerInput {
     bool moveLeft = false;
     bool moveRight = false;
@@ -29,7 +31,7 @@ private:
         sf::Keyboard::Key aimDown;
     };
 
-    std::array<KeyBinding, 4> m_keyBindings;
-    std::array<bool, 4> m_prevJump = {};
-    std::array<bool, 4> m_prevAttack = {};
+    std::array<KeyBinding, MAX_PLAYERS> m_keyBindings;
+    std::array<bool, MAX_PLAYERS> m_prevJump = {};
+    std::array<bool, MAX_PLAYERS> m_prevAttack = {};
 };

@@ -9,8 +9,9 @@
 #include "HUD.h"
 #include <vector>
 #include <memory>
+#include <array>
 
-enum class GameState { Menu, Playing, RoundOver, GameOver };
+enum class GameState { CharSelect, Playing, RoundOver, GameOver };
 
 struct Projectile {
     b2BodyId bodyId;
@@ -18,7 +19,7 @@ struct Projectile {
     int ownerIndex = -1;
     float lifetime = 0.0f;
     bool alive = true;
-    bool isPoison = false;   // poison projectiles apply DOT instead of burst
+    bool isPoison = false;
     float poisonDps = 0.0f;
     float poisonDuration = 0.0f;
 };
@@ -30,6 +31,14 @@ struct WeaponPickup {
     bool alive = true;
 };
 
+// Per-player selection state during character select
+struct PlayerSelectState {
+    bool joined = false;
+    bool ready = false;
+    int  charIndex = 0;  // index into CharacterType enum
+    float previewTimer = 0.0f;
+};
+
 class Game {
 public:
     Game();
@@ -39,6 +48,14 @@ public:
     void run();
 
 private:
+    // Character select
+    void processCharSelectEvents();
+    void updateCharSelect(float dt);
+    void renderCharSelect();
+    bool allPlayersReady() const;
+    void startGame();
+
+    // Gameplay
     void processEvents();
     void update(float dt);
     void render();
@@ -52,7 +69,7 @@ private:
     void updateWeaponPickups(float dt);
     void checkRoundEnd();
 
-    GameState m_state = GameState::Playing;
+    GameState m_state = GameState::CharSelect;
     float     m_roundTimer = 0.0f;
     float     m_weaponSpawnTimer = 0.0f;
 
@@ -68,10 +85,15 @@ private:
     std::vector<Projectile> m_projectiles;
     std::vector<WeaponPickup> m_pickups;
 
-    const sf::Color m_playerColors[4] = {
+    // Character select state
+    std::array<PlayerSelectState, MAX_PLAYERS> m_selectState;
+    float m_selectAnimTimer = 0.0f;
+
+    static constexpr sf::Color m_playerColors[MAX_PLAYERS] = {
         sf::Color(100, 180, 255),  // Blue
         sf::Color(255, 100, 100),  // Red
         sf::Color(100, 255, 100),  // Green
-        sf::Color(180, 100, 220),  // Purple (cobra)
+        sf::Color(180, 100, 220),  // Purple
+        sf::Color(255, 200, 100),  // Gold (unicorn default)
     };
 };
