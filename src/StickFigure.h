@@ -108,4 +108,7 @@ private:
     float m_jumpForce = 12.0f;
 
     StickFigureConfig m_config;
+
+    // Animation
+    float m_animTime = 0.0f;
 };

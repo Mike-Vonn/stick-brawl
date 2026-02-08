@@ -200,6 +200,7 @@ void StickFigure::update(float dt) {
     if (m_attackCooldown > 0.0f) m_attackCooldown -= dt;
     if (m_attackAnimTimer > 0.0f) m_attackAnimTimer -= dt;
     if (m_damageFlashTimer > 0.0f) m_damageFlashTimer -= dt;
+    m_animTime += dt;
 
     // Respawn delay
     if (m_waitingToRespawn) {
@@ -359,83 +360,183 @@ void StickFigure::drawCobra(sf::RenderTarget& target) const {
     b2Vec2 tp = b2Body_GetPosition(m_torso);
     sf::Vector2f c = toScreen(tp);
     float dir = static_cast<float>(m_facingDir);
+    float t = m_animTime;
 
-    // Coiled body base (oval)
-    sf::CircleShape coil(14.0f, 16);
-    coil.setScale({1.3f, 0.7f});
-    coil.setOrigin({14.0f, 14.0f});
-    coil.setPosition({c.x, c.y + 8.0f});
-    coil.setFillColor(dc);
-    coil.setOutlineColor(sf::Color::Black);
-    coil.setOutlineThickness(1.0f);
-    target.draw(coil);
+    // Velocity-based wiggle speed: faster movement = faster wiggle
+    b2Vec2 vel = b2Body_GetLinearVelocity(m_torso);
+    float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
+    float wiggleSpeed = 4.0f + speed * 1.5f;
+    float wiggleAmp = 3.0f + speed * 0.8f;
 
-    // Upright neck/body (curved line going up)
-    sf::VertexArray neck(sf::PrimitiveType::LineStrip, 5);
-    neck[0] = sf::Vertex{{c.x, c.y + 4.0f}, dc};
-    neck[1] = sf::Vertex{{c.x + dir * 2.0f, c.y - 5.0f}, dc};
-    neck[2] = sf::Vertex{{c.x + dir * 4.0f, c.y - 15.0f}, dc};
-    neck[3] = sf::Vertex{{c.x + dir * 3.0f, c.y - 25.0f}, dc};
-    neck[4] = sf::Vertex{{c.x + dir * 6.0f, c.y - 30.0f}, dc};
-    target.draw(neck);
+    // --- Coiled body: a spiral of line segments that wiggle ---
+    // Draw 2.5 loops of a coil sitting at the base
+    constexpr int coilSegs = 28;
+    constexpr float coilLoops = 2.5f;
+    constexpr float coilRadiusX = 14.0f;
+    constexpr float coilRadiusY = 6.0f;
+    sf::Vector2f coilCenter = {c.x - dir * 2.0f, c.y + 10.0f};
 
-    // Draw a thicker neck using a rectangle
-    sf::RectangleShape neckBody({4.0f, 30.0f});
-    neckBody.setOrigin({2.0f, 30.0f});
-    neckBody.setPosition({c.x + dir * 3.0f, c.y + 4.0f});
-    neckBody.setFillColor(dc);
-    target.draw(neckBody);
+    // Build coil points with per-segment wiggle
+    sf::VertexArray coilLine(sf::PrimitiveType::LineStrip, coilSegs + 1);
+    for (int i = 0; i <= coilSegs; i++) {
+        float frac = static_cast<float>(i) / static_cast<float>(coilSegs);
+        float angle = frac * coilLoops * 2.0f * 3.14159f;
+        // Shrink radius toward the center to look like a real coil
+        float rScale = 1.0f - frac * 0.3f;
+        float wiggle = std::sin(t * wiggleSpeed + frac * 8.0f) * wiggleAmp * (1.0f - frac * 0.5f);
+        float px = coilCenter.x + std::cos(angle) * coilRadiusX * rScale + wiggle * 0.3f;
+        float py = coilCenter.y + std::sin(angle) * coilRadiusY * rScale + wiggle * 0.15f;
+        // Stack coils vertically with slight offset
+        py -= frac * 8.0f;
 
-    // Hood (flared shape at top)
-    sf::ConvexShape hood(5);
-    float hx = c.x + dir * 5.0f;
-    float hy = c.y - 28.0f;
-    hood.setPoint(0, {hx - 12.0f, hy + 5.0f});
-    hood.setPoint(1, {hx - 8.0f,  hy - 8.0f});
-    hood.setPoint(2, {hx,         hy - 12.0f});
-    hood.setPoint(3, {hx + 8.0f,  hy - 8.0f});
-    hood.setPoint(4, {hx + 12.0f, hy + 5.0f});
+        // Color: darken toward tail end
+        uint8_t fade = static_cast<uint8_t>(255 - static_cast<int>(frac * 80.0f));
+        sf::Color segColor = {
+            static_cast<uint8_t>(dc.r * fade / 255),
+            static_cast<uint8_t>(dc.g * fade / 255),
+            static_cast<uint8_t>(dc.b * fade / 255),
+            dc.a
+        };
+        coilLine[i] = sf::Vertex{{px, py}, segColor};
+    }
+    target.draw(coilLine);
+
+    // Draw thicker coil by offsetting and drawing again
+    sf::VertexArray coilLine2(sf::PrimitiveType::LineStrip, coilSegs + 1);
+    for (int i = 0; i <= coilSegs; i++) {
+        coilLine2[i] = coilLine[i];
+        coilLine2[i].position.y += 1.5f;
+    }
+    target.draw(coilLine2);
+    sf::VertexArray coilLine3(sf::PrimitiveType::LineStrip, coilSegs + 1);
+    for (int i = 0; i <= coilSegs; i++) {
+        coilLine3[i] = coilLine[i];
+        coilLine3[i].position.y -= 1.5f;
+    }
+    target.draw(coilLine3);
+
+    // --- Neck: segmented line rising up from coil with S-curve wiggle ---
+    constexpr int neckSegs = 12;
+    constexpr float neckHeight = 38.0f;
+    sf::Vector2f neckBase = {c.x, c.y + 2.0f};
+
+    sf::VertexArray neckLine(sf::PrimitiveType::LineStrip, neckSegs + 1);
+    sf::Vector2f neckTop;
+    for (int i = 0; i <= neckSegs; i++) {
+        float frac = static_cast<float>(i) / static_cast<float>(neckSegs);
+        // S-curve wiggle that travels up the neck
+        float sway = std::sin(t * wiggleSpeed * 0.8f + frac * 3.5f) * wiggleAmp * 0.6f * (1.0f - frac * 0.3f);
+        float px = neckBase.x + dir * frac * 6.0f + sway;
+        float py = neckBase.y - frac * neckHeight;
+        neckLine[i] = sf::Vertex{{px, py}, dc};
+        if (i == neckSegs) neckTop = {px, py};
+    }
+    target.draw(neckLine);
+
+    // Thicken the neck with parallel lines, tapering toward the head
+    for (float offset : {-2.0f, 2.0f, -1.0f, 1.0f}) {
+        sf::VertexArray neckThick(sf::PrimitiveType::LineStrip, neckSegs + 1);
+        for (int i = 0; i <= neckSegs; i++) {
+            float frac = static_cast<float>(i) / static_cast<float>(neckSegs);
+            float thickness = (1.0f - frac * 0.4f); // taper toward head
+            neckThick[i] = neckLine[i];
+            neckThick[i].position.x += offset * thickness;
+        }
+        target.draw(neckThick);
+    }
+
+    // --- Hood: flared shape behind the head, wiggles slightly ---
+    float hoodSway = std::sin(t * wiggleSpeed * 0.6f) * 2.0f;
+    float hx = neckTop.x + dir * 2.0f + hoodSway * 0.3f;
+    float hy = neckTop.y;
+
+    sf::ConvexShape hood(7);
+    hood.setPoint(0, {hx - 14.0f,             hy + 6.0f});
+    hood.setPoint(1, {hx - 12.0f + hoodSway,  hy - 4.0f});
+    hood.setPoint(2, {hx - 6.0f,              hy - 10.0f});
+    hood.setPoint(3, {hx,                     hy - 13.0f});
+    hood.setPoint(4, {hx + 6.0f,              hy - 10.0f});
+    hood.setPoint(5, {hx + 12.0f - hoodSway,  hy - 4.0f});
+    hood.setPoint(6, {hx + 14.0f,             hy + 6.0f});
     hood.setFillColor(dc);
     hood.setOutlineColor(sf::Color::Black);
     hood.setOutlineThickness(1.0f);
     target.draw(hood);
 
-    // Head (small oval on top of hood)
+    // Hood pattern (lighter belly stripe)
+    sf::ConvexShape hoodBelly(5);
+    sf::Color bellyColor = {
+        static_cast<uint8_t>(std::min(255, dc.r + 60)),
+        static_cast<uint8_t>(std::min(255, dc.g + 60)),
+        static_cast<uint8_t>(std::min(255, dc.b + 20)),
+        dc.a
+    };
+    hoodBelly.setPoint(0, {hx - 6.0f, hy + 4.0f});
+    hoodBelly.setPoint(1, {hx - 4.0f, hy - 3.0f});
+    hoodBelly.setPoint(2, {hx,        hy - 6.0f});
+    hoodBelly.setPoint(3, {hx + 4.0f, hy - 3.0f});
+    hoodBelly.setPoint(4, {hx + 6.0f, hy + 4.0f});
+    hoodBelly.setFillColor(bellyColor);
+    target.draw(hoodBelly);
+
+    // --- Head ---
     sf::CircleShape head(6.0f);
     head.setOrigin({6.0f, 6.0f});
-    head.setPosition({hx + dir * 2.0f, hy - 10.0f});
+    head.setPosition({hx + dir * 2.0f, hy - 11.0f});
     head.setFillColor(dc);
     head.setOutlineColor(sf::Color::Black);
     head.setOutlineThickness(1.0f);
     target.draw(head);
 
-    // Eyes (menacing)
+    // Eyes (menacing, red with slit pupils)
     for (float s : {-1.0f, 1.0f}) {
-        sf::CircleShape eye(1.5f); eye.setOrigin({1.5f, 1.5f});
-        eye.setPosition({hx + dir * 2.0f + s * 3.0f, hy - 11.0f});
-        eye.setFillColor(sf::Color::Red);
+        sf::CircleShape eye(2.0f); eye.setOrigin({2.0f, 2.0f});
+        eye.setPosition({hx + dir * 2.0f + s * 3.5f, hy - 12.0f});
+        eye.setFillColor(sf::Color::Yellow);
         target.draw(eye);
+        // Slit pupil
+        sf::RectangleShape pupil({1.0f, 3.0f});
+        pupil.setOrigin({0.5f, 1.5f});
+        pupil.setPosition(eye.getPosition());
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
     }
 
-    // Tongue (forked)
-    sf::Vector2f tongueStart = {hx + dir * 8.0f, hy - 10.0f};
-    sf::VertexArray tongue1(sf::PrimitiveType::Lines, 2);
-    tongue1[0] = sf::Vertex{tongueStart, sf::Color::Red};
-    tongue1[1] = sf::Vertex{{tongueStart.x + dir * 10.0f, tongueStart.y - 3.0f}, sf::Color::Red};
-    target.draw(tongue1);
-    sf::VertexArray tongue2(sf::PrimitiveType::Lines, 2);
-    tongue2[0] = sf::Vertex{tongueStart, sf::Color::Red};
-    tongue2[1] = sf::Vertex{{tongueStart.x + dir * 10.0f, tongueStart.y + 3.0f}, sf::Color::Red};
-    target.draw(tongue2);
+    // --- Tongue: forked, with flicker animation ---
+    float tongueFlicker = std::sin(t * 12.0f);
+    bool tongueOut = tongueFlicker > -0.3f; // tongue flicks in and out
+    if (tongueOut) {
+        float tongueLen = 8.0f + tongueFlicker * 4.0f;
+        sf::Vector2f tongueStart = {hx + dir * 8.0f, hy - 10.0f};
+        float forkAngle = 0.25f + tongueFlicker * 0.1f;
 
-    // Scale pattern (small diamonds on body)
-    for (int i = 0; i < 3; i++) {
-        float sy = c.y + 2.0f - static_cast<float>(i) * 10.0f;
-        sf::CircleShape scale(2.0f, 4);
-        scale.setOrigin({2.0f, 2.0f});
-        scale.setPosition({c.x + dir * 3.0f, sy});
-        sf::Color scaleColor = dc;
-        scaleColor.r = static_cast<uint8_t>(std::min(255, static_cast<int>(scaleColor.r) + 40));
+        sf::VertexArray tongue(sf::PrimitiveType::LineStrip, 3);
+        tongue[0] = sf::Vertex{tongueStart, sf::Color::Red};
+        tongue[1] = sf::Vertex{{tongueStart.x + dir * tongueLen, tongueStart.y}, sf::Color::Red};
+        tongue[2] = sf::Vertex{{tongueStart.x + dir * (tongueLen + 4.0f),
+                                tongueStart.y - forkAngle * 8.0f}, sf::Color::Red};
+        target.draw(tongue);
+
+        sf::VertexArray tongue2(sf::PrimitiveType::Lines, 2);
+        tongue2[0] = sf::Vertex{{tongueStart.x + dir * tongueLen, tongueStart.y}, sf::Color::Red};
+        tongue2[1] = sf::Vertex{{tongueStart.x + dir * (tongueLen + 4.0f),
+                                 tongueStart.y + forkAngle * 8.0f}, sf::Color::Red};
+        target.draw(tongue2);
+    }
+
+    // --- Scale pattern along the neck (diamond shapes) ---
+    for (int i = 2; i <= neckSegs - 2; i += 2) {
+        sf::Vector2f pos = neckLine[i].position;
+        float frac = static_cast<float>(i) / static_cast<float>(neckSegs);
+        float scaleSize = 2.5f * (1.0f - frac * 0.3f);
+        sf::CircleShape scale(scaleSize, 4);
+        scale.setOrigin({scaleSize, scaleSize});
+        scale.setPosition(pos);
+        sf::Color scaleColor = {
+            static_cast<uint8_t>(std::min(255, static_cast<int>(dc.r) + 40)),
+            static_cast<uint8_t>(std::min(255, static_cast<int>(dc.g) + 20)),
+            dc.b, dc.a
+        };
         scale.setFillColor(scaleColor);
         target.draw(scale);
     }
