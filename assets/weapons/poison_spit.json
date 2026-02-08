@@ -1,0 +1,18 @@
+{
+    "name": "Poison Spit",
+    "type": "projectile",
+    "damage": 5,
+    "knockback_force": 2.0,
+    "range": 40.0,
+    "attack_rate_seconds": 0.8,
+    "projectile_speed": 25.0,
+    "projectile_lifetime_seconds": 2.0,
+    "ammo": -1,
+    "spread_degrees": 0.0,
+    "affected_by_gravity": true,
+    "sprite": "",
+    "projectile_sprite": "",
+    "sound_fire": "",
+    "sound_hit": "",
+    "description": "Venomous spit that poisons targets (8 DPS for 4 seconds)"
+}

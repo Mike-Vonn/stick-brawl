@@ -1,0 +1,12 @@
+{
+    "name": "Fists",
+    "type": "melee",
+    "damage": 10,
+    "knockback_force": 5.0,
+    "range": 2.0,
+    "attack_rate_seconds": 0.3,
+    "sprite": "",
+    "sound_hit": "",
+    "sound_swing": "",
+    "description": "Default bare-handed attacks"
+}

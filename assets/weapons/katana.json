@@ -1,0 +1,12 @@
+{
+    "name": "Katana",
+    "type": "melee",
+    "damage": 30,
+    "knockback_force": 10.0,
+    "range": 2.5,
+    "attack_rate_seconds": 0.5,
+    "sprite": "katana.png",
+    "sound_hit": "katana_hit.wav",
+    "sound_swing": "katana_swing.wav",
+    "description": "A swift blade with good range"
+}

@@ -1,0 +1,18 @@
+{
+    "name": "Grenade Launcher",
+    "type": "explosive",
+    "damage": 50,
+    "knockback_force": 25.0,
+    "range": 30.0,
+    "attack_rate_seconds": 1.5,
+    "projectile_speed": 15.0,
+    "projectile_lifetime_seconds": 3.0,
+    "explosion_radius": 4.0,
+    "ammo": 4,
+    "affected_by_gravity": true,
+    "sprite": "grenade_launcher.png",
+    "projectile_sprite": "grenade.png",
+    "sound_fire": "grenade_launch.wav",
+    "sound_explode": "explosion.wav",
+    "description": "Devastating area damage with arc trajectory"
+}

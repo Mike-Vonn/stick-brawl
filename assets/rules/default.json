@@ -1,0 +1,15 @@
+{
+    "max_health": 100,
+    "gravity_x": 0.0,
+    "gravity_y": -20.0,
+    "round_time_seconds": 120,
+    "lives_per_player": 3,
+    "max_players": 4,
+    "friendly_fire": true,
+    "weapon_spawn_interval_seconds": 5.0,
+    "weapon_spawn_max": 3,
+    "fall_death_y": -20.0,
+    "respawn_delay_seconds": 2.0,
+    "knockback_multiplier": 1.0,
+    "damage_multiplier": 1.0
+}
