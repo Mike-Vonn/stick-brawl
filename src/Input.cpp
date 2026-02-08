@@ -33,15 +33,15 @@ void Input::update() {
 PlayerInput Input::getPlayerInput(int playerIndex) const {
     PlayerInput pi;
 
-    if (playerIndex < 4) {
-        const auto& kb = m_keyBindings[playerIndex];
+    if (playerIndex < 0 || playerIndex >= 4) return pi;
+
+    const auto& kb = m_keyBindings[playerIndex];
         pi.moveLeft  = sf::Keyboard::isKeyPressed(kb.left);
         pi.moveRight = sf::Keyboard::isKeyPressed(kb.right);
         pi.jump      = sf::Keyboard::isKeyPressed(kb.jump);
         pi.attack    = sf::Keyboard::isKeyPressed(kb.attack);
         pi.aimUp     = sf::Keyboard::isKeyPressed(kb.aimUp);
         pi.aimDown   = sf::Keyboard::isKeyPressed(kb.aimDown);
-    }
 
     pi.jumpPressed   = pi.jump && !m_prevJump[playerIndex];
     pi.attackPressed  = pi.attack && !m_prevAttack[playerIndex];

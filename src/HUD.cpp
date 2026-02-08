@@ -31,16 +31,22 @@ void HUD::draw(sf::RenderTarget& target, const std::vector<std::unique_ptr<Stick
     float barWidth = 200.0f;
     float barHeight = 20.0f;
     float margin = 20.0f;
-    float spacing = 35.0f;
 
-    for (size_t i = 0; i < players.size(); i++) {
+    float screenW = static_cast<float>(target.getSize().x);
+
+    // 4-corner layout: P0=top-left, P1=top-right, P2=bottom-left, P3=bottom-right
+    struct HudSlot { float x; float y; };
+    HudSlot slots[4] = {
+        { margin,                      margin },                        // top-left
+        { screenW - margin - barWidth, margin },                        // top-right
+        { margin,                      static_cast<float>(target.getSize().y) - margin - 55.0f }, // bottom-left
+        { screenW - margin - barWidth, static_cast<float>(target.getSize().y) - margin - 55.0f }, // bottom-right
+    };
+
+    for (size_t i = 0; i < players.size() && i < 4; i++) {
         const auto& p = players[i];
-        float x = margin;
-        float y = margin + static_cast<float>(i) * (barHeight + spacing);
-
-        if (i == 1) {
-            x = static_cast<float>(target.getSize().x) - margin - barWidth;
-        }
+        float x = slots[i].x;
+        float y = slots[i].y;
 
         float healthPct = p->getHealth() / p->getMaxHealth();
         drawHealthBar(target, x, y, barWidth, barHeight, healthPct, p->getColor());

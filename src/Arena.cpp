@@ -33,7 +33,7 @@ b2Vec2 Arena::getRandomPlatformTop() const {
 
 void Arena::draw(sf::RenderTarget& target) const {
     auto toScreen = [](float x, float y) -> sf::Vector2f {
-        return {640.0f + x * PPM, 360.0f - y * PPM};
+        return {SCREEN_CX + x * PPM, SCREEN_CY - y * PPM};
     };
 
     for (const auto& p : m_platforms) {

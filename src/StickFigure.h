@@ -43,6 +43,8 @@ public:
     void takeDamage(float amount, float knockbackX, float knockbackY);
     void applyPoison(float dps, float duration);
     void respawn(float x, float y);
+    void startRespawnTimer(float delay, float x, float y);
+    bool isWaitingToRespawn() const { return m_waitingToRespawn; }
     void update(float dt);
 
     float getHealth() const { return m_health; }
@@ -52,6 +54,7 @@ public:
     int   getPlayerIndex() const { return m_playerIndex; }
     int   getLives() const { return m_lives; }
     void  setLives(int lives) { m_lives = lives; }
+    void  setMaxHealth(float hp) { m_maxHealth = hp; m_health = hp; }
     sf::Color getColor() const { return m_color; }
     CharacterType getCharacterType() const { return m_charType; }
 
@@ -88,6 +91,10 @@ private:
     float m_attackCooldown = 0.0f;
     float m_attackAnimTimer = 0.0f;
     float m_damageFlashTimer = 0.0f;
+    float m_respawnTimer = 0.0f;
+    bool  m_waitingToRespawn = false;
+    float m_pendingRespawnX = 0.0f;
+    float m_pendingRespawnY = 0.0f;
 
     // Poison DOT
     float m_poisonTimer = 0.0f;

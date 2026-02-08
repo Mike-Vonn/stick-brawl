@@ -6,6 +6,12 @@ constexpr float PPM = 30.0f;
 inline float toMeters(float px) { return px / PPM; }
 inline float toPixels(float m)  { return m * PPM; }
 
+// Screen dimensions (used for world-to-screen transforms)
+constexpr float SCREEN_WIDTH  = 1280.0f;
+constexpr float SCREEN_HEIGHT = 720.0f;
+constexpr float SCREEN_CX     = SCREEN_WIDTH / 2.0f;
+constexpr float SCREEN_CY     = SCREEN_HEIGHT / 2.0f;
+
 // Collision categories
 enum CollisionCategory : uint64_t {
     CAT_PLATFORM   = 0x0001,

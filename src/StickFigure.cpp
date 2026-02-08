@@ -3,7 +3,7 @@
 #include <iostream>
 
 static sf::Vector2f toScreen(b2Vec2 pos) {
-    return {640.0f + pos.x * PPM, 360.0f - pos.y * PPM};
+    return {SCREEN_CX + pos.x * PPM, SCREEN_CY - pos.y * PPM};
 }
 
 StickFigure::StickFigure(int playerIndex, Physics& physics, float spawnX, float spawnY,
@@ -98,9 +98,6 @@ void StickFigure::createBodies(Physics& physics, float spawnX, float spawnY) {
 }
 
 bool StickFigure::isOnGround() const {
-    b2Vec2 vel = b2Body_GetLinearVelocity(m_torso);
-    bool lowVert = std::abs(vel.y) < 0.5f;
-
     b2Vec2 pos = b2Body_GetPosition(m_torso);
     b2Vec2 origin = {pos.x, pos.y - m_config.bodyHeight / 4.0f - 0.05f};
     b2Vec2 translation = {0.0f, -0.5f};
@@ -108,7 +105,7 @@ bool StickFigure::isOnGround() const {
     filter.categoryBits = CAT_PLATFORM;
     filter.maskBits = CAT_PLATFORM;
     b2RayResult result = b2World_CastRayClosest(m_physics->getWorldId(), origin, translation, filter);
-    return result.hit || lowVert;
+    return result.hit;
 }
 
 void StickFigure::moveLeft()  { m_facingDir = -1; b2Vec2 v = b2Body_GetLinearVelocity(m_torso); b2Body_SetLinearVelocity(m_torso, {-m_moveSpeed, v.y}); }
@@ -161,10 +158,40 @@ void StickFigure::respawn(float x, float y) {
     m_health = m_maxHealth;
     m_poisonTimer = 0.0f;
     m_aimAngle = 0.0f;
-    b2Body_SetTransform(m_torso, {x, y}, b2MakeRot(0.0f));
-    b2Body_SetLinearVelocity(m_torso, {0.0f, 0.0f});
-    b2Body_SetTransform(m_head, {x, y + m_config.bodyHeight / 4.0f + m_config.headRadius + 0.05f}, b2MakeRot(0.0f));
-    b2Body_SetLinearVelocity(m_head, {0.0f, 0.0f});
+
+    b2Rot zeroRot = b2MakeRot(0.0f);
+    b2Vec2 zero = {0.0f, 0.0f};
+
+    // Torso
+    b2Body_SetTransform(m_torso, {x, y}, zeroRot);
+    b2Body_SetLinearVelocity(m_torso, zero);
+    b2Body_SetAngularVelocity(m_torso, 0.0f);
+
+    // Head
+    b2Body_SetTransform(m_head, {x, y + m_config.bodyHeight / 4.0f + m_config.headRadius + 0.05f}, zeroRot);
+    b2Body_SetLinearVelocity(m_head, zero);
+    b2Body_SetAngularVelocity(m_head, 0.0f);
+
+    // Left arm
+    b2Body_SetTransform(m_leftArm, {x - m_config.limbLength * 0.5f, y + m_config.bodyHeight / 6.0f}, zeroRot);
+    b2Body_SetLinearVelocity(m_leftArm, zero);
+    b2Body_SetAngularVelocity(m_leftArm, 0.0f);
+
+    // Right arm
+    b2Body_SetTransform(m_rightArm, {x + m_config.limbLength * 0.5f, y + m_config.bodyHeight / 6.0f}, zeroRot);
+    b2Body_SetLinearVelocity(m_rightArm, zero);
+    b2Body_SetAngularVelocity(m_rightArm, 0.0f);
+
+    // Left leg
+    b2Body_SetTransform(m_leftLeg, {x - 0.1f, y - m_config.bodyHeight / 4.0f - m_config.limbLength * 0.4f}, zeroRot);
+    b2Body_SetLinearVelocity(m_leftLeg, zero);
+    b2Body_SetAngularVelocity(m_leftLeg, 0.0f);
+
+    // Right leg
+    b2Body_SetTransform(m_rightLeg, {x + 0.1f, y - m_config.bodyHeight / 4.0f - m_config.limbLength * 0.4f}, zeroRot);
+    b2Body_SetLinearVelocity(m_rightLeg, zero);
+    b2Body_SetAngularVelocity(m_rightLeg, 0.0f);
+
     m_weapon = WeaponData{};
     m_currentAmmo = -1;
 }
@@ -173,6 +200,16 @@ void StickFigure::update(float dt) {
     if (m_attackCooldown > 0.0f) m_attackCooldown -= dt;
     if (m_attackAnimTimer > 0.0f) m_attackAnimTimer -= dt;
     if (m_damageFlashTimer > 0.0f) m_damageFlashTimer -= dt;
+
+    // Respawn delay
+    if (m_waitingToRespawn) {
+        m_respawnTimer -= dt;
+        if (m_respawnTimer <= 0.0f) {
+            m_waitingToRespawn = false;
+            respawn(m_pendingRespawnX, m_pendingRespawnY);
+        }
+        return; // skip other updates while waiting
+    }
 
     // Poison tick
     if (m_poisonTimer > 0.0f) {
@@ -184,6 +221,16 @@ void StickFigure::update(float dt) {
             if (m_health < 0.0f) m_health = 0.0f;
         }
     }
+}
+
+void StickFigure::startRespawnTimer(float delay, float x, float y) {
+    m_waitingToRespawn = true;
+    m_respawnTimer = delay;
+    m_pendingRespawnX = x;
+    m_pendingRespawnY = y;
+    // Move body off-screen while waiting
+    b2Body_SetLinearVelocity(m_torso, {0.0f, 0.0f});
+    b2Body_SetTransform(m_torso, {x, -100.0f}, b2MakeRot(0.0f));
 }
 
 b2Vec2 StickFigure::getPosition() const { return b2Body_GetPosition(m_torso); }

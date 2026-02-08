@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <random>
 
 Game::Game() = default;
 Game::~Game() = default;
@@ -24,6 +25,7 @@ bool Game::init() {
         auto p = std::make_unique<StickFigure>(
             i, m_physics, spawns[i].x, spawns[i].y, m_playerColors[i], types[i]);
         p->setLives(rules.livesPerPlayer);
+        p->setMaxHealth(rules.maxHealth);
 
         // Give cobra its innate poison spit
         if (types[i] == CharacterType::Cobra) {
@@ -157,6 +159,14 @@ void Game::spawnProjectile(StickFigure& shooter) {
     float dir = static_cast<float>(shooter.getFacingDirection());
     float aim = shooter.getAimAngle();
 
+    // Apply weapon spread (random offset within spread cone)
+    float spreadRad = weapon.spreadDegrees * 3.14159f / 180.0f;
+    if (spreadRad > 0.0f) {
+        static std::mt19937 rng(std::random_device{}());
+        std::uniform_real_distribution<float> spreadDist(-spreadRad, spreadRad);
+        aim += spreadDist(rng);
+    }
+
     float vx = weapon.projectileSpeed * dir * std::cos(aim);
     float vy = weapon.projectileSpeed * std::sin(aim);
 
@@ -195,11 +205,13 @@ void Game::updateProjectiles(float dt) {
         proj.lifetime -= dt;
         if (proj.lifetime <= 0.0f) {
             proj.alive = false;
-            b2DestroyBody(proj.bodyId);
             continue;
         }
 
         b2Vec2 pp = b2Body_GetPosition(proj.bodyId);
+        bool isExplosive = (proj.weapon.type == WeaponType::Explosive);
+        float hitR = isExplosive ? proj.weapon.explosionRadius : 0.6f;
+
         for (auto& player : m_players) {
             if (player->getPlayerIndex() == proj.ownerIndex) continue;
             if (!player->isAlive()) continue;
@@ -207,27 +219,49 @@ void Game::updateProjectiles(float dt) {
             b2Vec2 plp = player->getPosition();
             float dx = pp.x - plp.x, dy = pp.y - plp.y;
             float dist = std::sqrt(dx * dx + dy * dy);
-            float hitR = (proj.weapon.type == WeaponType::Explosive) ? proj.weapon.explosionRadius : 0.6f;
 
             if (dist < hitR) {
                 if (proj.isPoison) {
-                    // Poison: small initial damage + DOT
                     player->takeDamage(5.0f, 0.0f, 0.0f);
                     player->applyPoison(proj.poisonDps, proj.poisonDuration);
                 } else {
                     float dmg = proj.weapon.damage * rules.damageMultiplier;
-                    float kbDir = (dx > 0) ? -1.0f : 1.0f;
+                    // Scale damage by distance for explosives
+                    if (isExplosive && proj.weapon.explosionRadius > 0.0f) {
+                        float falloff = 1.0f - (dist / proj.weapon.explosionRadius);
+                        dmg *= std::max(0.3f, falloff);
+                    }
+                    float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
                     float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
                     float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
                     player->takeDamage(dmg, kbX, kbY);
                 }
-                proj.alive = false;
-                b2DestroyBody(proj.bodyId);
-                break;
+
+                // Explosives hit all in radius; others break on first hit
+                if (!isExplosive) {
+                    proj.alive = false;
+                    break;
+                }
+            }
+        }
+
+        // Explosive that hit at least one target is consumed
+        if (isExplosive) {
+            for (const auto& player : m_players) {
+                if (player->getPlayerIndex() == proj.ownerIndex) continue;
+                if (!player->isAlive()) continue;
+                b2Vec2 plp = player->getPosition();
+                float dx = pp.x - plp.x, dy = pp.y - plp.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+                if (dist < hitR) { proj.alive = false; break; }
             }
         }
     }
 
+    // Deferred body destruction — safe after iteration
+    for (auto& proj : m_projectiles) {
+        if (!proj.alive) b2DestroyBody(proj.bodyId);
+    }
     m_projectiles.erase(
         std::remove_if(m_projectiles.begin(), m_projectiles.end(),
                         [](const Projectile& p) { return !p.alive; }),
@@ -284,14 +318,14 @@ void Game::checkFallDeath() {
     const auto& rules = m_rulesEngine.getRules();
     const auto& spawns = m_arena.getSpawnPoints();
     for (auto& player : m_players) {
-        if (!player->isAlive()) continue;
+        if (!player->isAlive() || player->isWaitingToRespawn()) continue;
         if (player->getPosition().y < rules.fallDeathY) {
             player->takeDamage(9999.0f, 0.0f, 0.0f);
             int lives = player->getLives() - 1;
             player->setLives(lives);
             if (lives > 0) {
                 size_t idx = static_cast<size_t>(player->getPlayerIndex());
-                player->respawn(spawns[idx].x, spawns[idx].y);
+                player->startRespawnTimer(rules.respawnDelay, spawns[idx].x, spawns[idx].y);
             }
         }
     }
@@ -317,8 +351,8 @@ void Game::render() {
     for (const auto& pickup : m_pickups) {
         if (!pickup.alive) continue;
         float bob = std::sin(pickup.bobTimer * 3.0f) * 3.0f;
-        sf::Vector2f sp = {640.0f + pickup.position.x * PPM,
-                           360.0f - pickup.position.y * PPM + bob};
+        sf::Vector2f sp = {SCREEN_CX + pickup.position.x * PPM,
+                           SCREEN_CY - pickup.position.y * PPM + bob};
 
         // Glowing box
         sf::RectangleShape box({16.0f, 16.0f});
@@ -351,7 +385,7 @@ void Game::render() {
         if (!proj.alive) continue;
         b2Vec2 pos = b2Body_GetPosition(proj.bodyId);
         sf::CircleShape c(4.0f); c.setOrigin({4.0f, 4.0f});
-        c.setPosition({640.0f + pos.x * PPM, 360.0f - pos.y * PPM});
+        c.setPosition({SCREEN_CX + pos.x * PPM, SCREEN_CY - pos.y * PPM});
         if (proj.isPoison)
             c.setFillColor(sf::Color(0, 220, 0));
         else
@@ -362,7 +396,7 @@ void Game::render() {
     m_hud.draw(m_renderer.getWindow(), m_players, m_roundTimer);
 
     if (m_state == GameState::RoundOver) {
-        sf::RectangleShape overlay({1280.0f, 720.0f});
+        sf::RectangleShape overlay({SCREEN_WIDTH, SCREEN_HEIGHT});
         overlay.setFillColor(sf::Color(0, 0, 0, 150));
         m_renderer.getWindow().draw(overlay);
     }
