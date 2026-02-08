@@ -1,66 +1,40 @@
 #include "ContactListener.h"
-#include "StickFigure.h"
 
-void ContactListener::BeginContact(b2Contact* contact) {
-    b2Fixture* fixtureA = contact->GetFixtureA();
-    b2Fixture* fixtureB = contact->GetFixtureB();
+void ContactListener::processEvents(b2WorldId worldId) {
+    // Box2D 3.x: poll contact events after each world step
+    b2ContactEvents events = b2World_GetContactEvents(worldId);
 
-    // Handle ground sensor contacts for jump detection
-    bool sensorA = fixtureA->IsSensor();
-    bool sensorB = fixtureB->IsSensor();
+    // Process begin-touch events
+    for (int i = 0; i < events.beginCount; i++) {
+        const b2ContactBeginTouchEvent& e = events.beginEvents[i];
 
-    if (sensorA || sensorB) {
-        b2Fixture* sensorFixture = sensorA ? fixtureA : fixtureB;
-        b2Fixture* otherFixture = sensorA ? fixtureB : fixtureA;
+        b2BodyId bodyA = b2Shape_GetBody(e.shapeIdA);
+        b2BodyId bodyB = b2Shape_GetBody(e.shapeIdB);
 
-        // Check if the other fixture is a platform
-        if (otherFixture->GetFilterData().categoryBits & CAT_PLATFORM) {
-            b2Body* sensorBody = sensorFixture->GetBody();
-            auto* player = reinterpret_cast<StickFigure*>(sensorBody->GetUserData().pointer);
-            if (player) {
-                player->addGroundContact();
+        if (m_beginCallback) {
+            CollisionEvent evt;
+            evt.bodyA = bodyA;
+            evt.bodyB = bodyB;
+            if (e.manifold.pointCount > 0) {
+                evt.contactPoint = e.manifold.points[0].point;
+                evt.normal = e.manifold.normal;
             }
+            m_beginCallback(evt);
         }
     }
 
-    if (m_beginCallback) {
-        CollisionEvent event;
-        event.bodyA = fixtureA->GetBody();
-        event.bodyB = fixtureB->GetBody();
+    // Process end-touch events
+    for (int i = 0; i < events.endCount; i++) {
+        const b2ContactEndTouchEvent& e = events.endEvents[i];
 
-        b2WorldManifold manifold;
-        contact->GetWorldManifold(&manifold);
-        event.contactPoint = manifold.points[0];
-        event.normal = manifold.normal;
+        b2BodyId bodyA = b2Shape_GetBody(e.shapeIdA);
+        b2BodyId bodyB = b2Shape_GetBody(e.shapeIdB);
 
-        m_beginCallback(event);
-    }
-}
-
-void ContactListener::EndContact(b2Contact* contact) {
-    b2Fixture* fixtureA = contact->GetFixtureA();
-    b2Fixture* fixtureB = contact->GetFixtureB();
-
-    bool sensorA = fixtureA->IsSensor();
-    bool sensorB = fixtureB->IsSensor();
-
-    if (sensorA || sensorB) {
-        b2Fixture* sensorFixture = sensorA ? fixtureA : fixtureB;
-        b2Fixture* otherFixture = sensorA ? fixtureB : fixtureA;
-
-        if (otherFixture->GetFilterData().categoryBits & CAT_PLATFORM) {
-            b2Body* sensorBody = sensorFixture->GetBody();
-            auto* player = reinterpret_cast<StickFigure*>(sensorBody->GetUserData().pointer);
-            if (player) {
-                player->removeGroundContact();
-            }
+        if (m_endCallback) {
+            CollisionEvent evt;
+            evt.bodyA = bodyA;
+            evt.bodyB = bodyB;
+            m_endCallback(evt);
         }
-    }
-
-    if (m_endCallback) {
-        CollisionEvent event;
-        event.bodyA = fixtureA->GetBody();
-        event.bodyB = fixtureB->GetBody();
-        m_endCallback(event);
     }
 }
