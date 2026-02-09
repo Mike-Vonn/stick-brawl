@@ -1,0 +1,13 @@
+{
+    "name": "Jaw Snap",
+    "type": "melee",
+    "damage": 35,
+    "knockback_force": 8.0,
+    "range": 2.5,
+    "attack_rate_seconds": 0.8,
+    "env_damage_radius": 0.4,
+    "sprite": "",
+    "sound_hit": "",
+    "sound_swing": "",
+    "description": "A devastating bite that crushes through armor and bone"
+}

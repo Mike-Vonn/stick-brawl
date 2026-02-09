@@ -15,18 +15,20 @@ enum class CharacterType {
     Stick,
     Cat,
     Cobra,
-    Unicorn
+    Unicorn,
+    Crocodile
 };
 
 // Number of available character types
-constexpr int CHARACTER_TYPE_COUNT = 4;
+constexpr int CHARACTER_TYPE_COUNT = 5;
 
 inline const char* characterTypeName(CharacterType t) {
     switch (t) {
-        case CharacterType::Stick:   return "Stick";
-        case CharacterType::Cat:     return "Cat";
-        case CharacterType::Cobra:   return "Cobra";
-        case CharacterType::Unicorn: return "Unicorn";
+        case CharacterType::Stick:     return "Stick";
+        case CharacterType::Cat:       return "Cat";
+        case CharacterType::Cobra:     return "Cobra";
+        case CharacterType::Unicorn:   return "Unicorn";
+        case CharacterType::Crocodile: return "Crocodile";
     }
     return "???";
 }
@@ -86,6 +88,7 @@ private:
     void drawCat(sf::RenderTarget& target) const;
     void drawCobra(sf::RenderTarget& target) const;
     void drawUnicorn(sf::RenderTarget& target) const;
+    void drawCrocodile(sf::RenderTarget& target) const;
     void drawAttackEffect(sf::RenderTarget& target) const;
     void drawAimIndicator(sf::RenderTarget& target) const;
 

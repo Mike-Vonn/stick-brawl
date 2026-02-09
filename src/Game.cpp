@@ -39,6 +39,7 @@ static CharacterType indexToType(int idx) {
         case 1: return CharacterType::Cat;
         case 2: return CharacterType::Cobra;
         case 3: return CharacterType::Unicorn;
+        case 4: return CharacterType::Crocodile;
         default: return CharacterType::Stick;
     }
 }
@@ -358,6 +359,73 @@ void Game::renderCharSelect() {
                 }
                 break;
             }
+            case CharacterType::Crocodile: {
+                // Body (long, low)
+                sf::ConvexShape crocBody(6);
+                crocBody.setPoint(0, {cx - 22.0f, previewY - 5.0f});
+                crocBody.setPoint(1, {cx + 10.0f, previewY - 7.0f});
+                crocBody.setPoint(2, {cx + 18.0f, previewY - 3.0f});
+                crocBody.setPoint(3, {cx + 18.0f, previewY + 6.0f});
+                crocBody.setPoint(4, {cx - 8.0f, previewY + 8.0f});
+                crocBody.setPoint(5, {cx - 22.0f, previewY + 4.0f});
+                crocBody.setFillColor(pc);
+                crocBody.setOutlineColor(sf::Color::Black);
+                crocBody.setOutlineThickness(1.0f);
+                win.draw(crocBody);
+                // Snout/jaw
+                sf::ConvexShape cSnout(4);
+                cSnout.setPoint(0, {cx + 18.0f, previewY - 5.0f});
+                cSnout.setPoint(1, {cx + 40.0f, previewY - 2.0f});
+                cSnout.setPoint(2, {cx + 38.0f, previewY + 2.0f});
+                cSnout.setPoint(3, {cx + 18.0f, previewY + 4.0f});
+                cSnout.setFillColor(pc);
+                cSnout.setOutlineColor(sf::Color::Black);
+                cSnout.setOutlineThickness(1.0f);
+                win.draw(cSnout);
+                // Teeth
+                for (int ti = 0; ti < 4; ti++) {
+                    float ttx = cx + 22.0f + static_cast<float>(ti) * 4.5f;
+                    sf::ConvexShape tooth(3);
+                    tooth.setPoint(0, {ttx - 1.0f, previewY + 1.0f});
+                    tooth.setPoint(1, {ttx, previewY + 4.5f});
+                    tooth.setPoint(2, {ttx + 1.0f, previewY + 1.0f});
+                    tooth.setFillColor(sf::Color(240, 235, 210));
+                    win.draw(tooth);
+                }
+                // Eye
+                sf::CircleShape crocEye(2.0f);
+                crocEye.setOrigin({2.0f, 2.0f});
+                crocEye.setPosition({cx + 14.0f, previewY - 7.0f});
+                crocEye.setFillColor(sf::Color(200, 180, 50));
+                win.draw(crocEye);
+                // Scutes
+                for (int si = 0; si < 4; si++) {
+                    float ssx = cx - 14.0f + static_cast<float>(si) * 7.0f;
+                    sf::ConvexShape scute(3);
+                    scute.setPoint(0, {ssx - 2.0f, previewY - 5.0f});
+                    scute.setPoint(1, {ssx, previewY - 10.0f});
+                    scute.setPoint(2, {ssx + 2.0f, previewY - 5.0f});
+                    scute.setFillColor(sf::Color(pc.r * 3 / 4, pc.g * 3 / 4, pc.b * 3 / 4));
+                    win.draw(scute);
+                }
+                // Tail
+                sf::VertexArray crocTail(sf::PrimitiveType::LineStrip, 5);
+                float crocT = m_selectAnimTimer;
+                for (int tti = 0; tti < 5; tti++) {
+                    float ttf = static_cast<float>(tti) / 4.0f;
+                    float wave = std::sin(crocT * 2.0f + ttf * 3.0f) * 4.0f * ttf;
+                    crocTail[tti] = sf::Vertex{{cx - 22.0f - ttf * 18.0f, previewY + wave}, pc};
+                }
+                win.draw(crocTail);
+                // Stubby legs
+                for (float clx : {-0.2f, 0.0f, 0.2f, 0.4f}) {
+                    sf::VertexArray cleg(sf::PrimitiveType::Lines, 2);
+                    cleg[0] = sf::Vertex{{cx + clx * 35.0f, previewY + 6.0f}, pc};
+                    cleg[1] = sf::Vertex{{cx + clx * 35.0f, previewY + 16.0f}, pc};
+                    win.draw(cleg);
+                }
+                break;
+            }
         }
 
         // Ready indicator
@@ -444,6 +512,9 @@ void Game::startGame() {
         } else if (ct == CharacterType::Unicorn) {
             auto* horn = m_weaponFactory.getWeapon("Horn Blast");
             if (horn) p->equipWeapon(*horn);
+        } else if (ct == CharacterType::Crocodile) {
+            auto* jaw = m_weaponFactory.getWeapon("Jaw Snap");
+            if (jaw) p->equipWeapon(*jaw);
         }
 
         m_players.push_back(std::move(p));
@@ -804,7 +875,7 @@ void Game::updateWeaponSpawns(float dt) {
         do {
             pickup.weapon = m_weaponFactory.getRandomWeapon();
         } while (pickup.weapon.name == "Fists" || pickup.weapon.name == "Poison Spit"
-                 || pickup.weapon.name == "Horn Blast");
+                 || pickup.weapon.name == "Horn Blast" || pickup.weapon.name == "Jaw Snap");
         pickup.alive = true;
         pickup.bobTimer = 0.0f;
         m_pickups.push_back(pickup);

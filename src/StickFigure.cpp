@@ -30,7 +30,7 @@ void StickFigure::createBodies(Physics& physics, float spawnX, float spawnY) {
         sd.density = 2.0f;
         sd.material.friction = 0.4f;
         sd.filter.categoryBits = CAT_PLAYER;
-        sd.filter.maskBits = CAT_PLATFORM | CAT_PROJECTILE | CAT_PICKUP;
+        sd.filter.maskBits = CAT_PLATFORM | CAT_PROJECTILE | CAT_PICKUP | CAT_PLAYER;
         b2CreatePolygonShape(m_torso, &sd, &box);
     }
 
@@ -84,7 +84,7 @@ void StickFigure::createBodies(Physics& physics, float spawnX, float spawnY) {
         legBody = b2CreateBody(worldId, &bd);
         b2Polygon box = b2MakeBox(m_config.limbWidth / 2.0f, m_config.limbLength / 2.0f);
         b2ShapeDef sd = b2DefaultShapeDef();
-        sd.density = 0.8f; sd.filter.categoryBits = CAT_PLAYER; sd.filter.maskBits = CAT_PLATFORM;
+        sd.density = 0.8f; sd.filter.categoryBits = CAT_PLAYER; sd.filter.maskBits = CAT_PLATFORM | CAT_PLAYER;
         b2CreatePolygonShape(legBody, &sd, &box);
         b2RevoluteJointDef jd = b2DefaultRevoluteJointDef();
         jd.bodyIdA = m_torso; jd.bodyIdB = legBody;
@@ -240,10 +240,11 @@ void StickFigure::draw(sf::RenderTarget& target) const {
     if (!isAlive()) return;
 
     switch (m_charType) {
-        case CharacterType::Cat:     drawCat(target); break;
-        case CharacterType::Cobra:   drawCobra(target); break;
-        case CharacterType::Unicorn: drawUnicorn(target); break;
-        default:                     drawStick(target); break;
+        case CharacterType::Cat:       drawCat(target); break;
+        case CharacterType::Cobra:     drawCobra(target); break;
+        case CharacterType::Unicorn:   drawUnicorn(target); break;
+        case CharacterType::Crocodile: drawCrocodile(target); break;
+        default:                       drawStick(target); break;
     }
 
     if (m_attackAnimTimer > 0.0f) drawAttackEffect(target);
@@ -758,12 +759,236 @@ void StickFigure::drawUnicorn(sf::RenderTarget& target) const {
     }
 }
 
+void StickFigure::drawCrocodile(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f c = toScreen(tp);
+    float dir = static_cast<float>(m_facingDir);
+    float t = m_animTime;
+
+    // Darker belly color
+    sf::Color belly(
+        static_cast<uint8_t>(std::min(255, dc.r + 40)),
+        static_cast<uint8_t>(std::min(255, dc.g + 50)),
+        static_cast<uint8_t>(std::min(255, dc.b + 20)));
+
+    b2Vec2 vel = b2Body_GetLinearVelocity(m_torso);
+    float speed = std::sqrt(vel.x * vel.x);
+
+    // --- Tail (thick, segmented, swishing) ---
+    float tailBaseX = c.x - dir * 20.0f;
+    float tailBaseY = c.y + 2.0f;
+    constexpr int tailSegs = 10;
+    sf::VertexArray tail(sf::PrimitiveType::LineStrip, tailSegs + 1);
+    float swish = speed > 1.0f ? std::sin(t * 6.0f) * 8.0f : std::sin(t * 1.5f) * 3.0f;
+    for (int i = 0; i <= tailSegs; i++) {
+        float frac = static_cast<float>(i) / static_cast<float>(tailSegs);
+        float wave = std::sin(t * 3.0f + frac * 4.0f) * swish * frac;
+        float tx = tailBaseX - dir * frac * 30.0f;
+        float ty = tailBaseY + frac * 6.0f + wave;
+        tail[i] = sf::Vertex{{tx, ty}, dc};
+    }
+    target.draw(tail);
+    // Tail thickness passes
+    for (float off : {-2.5f, 2.5f, -1.2f, 1.2f}) {
+        sf::VertexArray thick(sf::PrimitiveType::LineStrip, tailSegs + 1);
+        for (int i = 0; i <= tailSegs; i++) {
+            float frac = static_cast<float>(i) / static_cast<float>(tailSegs);
+            float taper = 1.0f - frac * 0.7f;
+            thick[i] = tail[i];
+            thick[i].position.y += off * taper;
+        }
+        target.draw(thick);
+    }
+
+    // --- Body (long, low rectangle) ---
+    sf::ConvexShape body(6);
+    body.setPoint(0, {c.x - dir * 20.0f, c.y - 8.0f});
+    body.setPoint(1, {c.x + dir * 12.0f, c.y - 10.0f});
+    body.setPoint(2, {c.x + dir * 20.0f, c.y - 6.0f});
+    body.setPoint(3, {c.x + dir * 20.0f, c.y + 8.0f});
+    body.setPoint(4, {c.x - dir * 10.0f, c.y + 10.0f});
+    body.setPoint(5, {c.x - dir * 20.0f, c.y + 6.0f});
+    body.setFillColor(dc);
+    body.setOutlineColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    body.setOutlineThickness(1.0f);
+    target.draw(body);
+
+    // Belly stripe
+    sf::ConvexShape bellyShape(4);
+    bellyShape.setPoint(0, {c.x - dir * 14.0f, c.y + 2.0f});
+    bellyShape.setPoint(1, {c.x + dir * 14.0f, c.y + 1.0f});
+    bellyShape.setPoint(2, {c.x + dir * 12.0f, c.y + 8.0f});
+    bellyShape.setPoint(3, {c.x - dir * 10.0f, c.y + 9.0f});
+    bellyShape.setFillColor(belly);
+    target.draw(bellyShape);
+
+    // Scutes (back ridges)
+    for (int i = 0; i < 6; i++) {
+        float sx = c.x - dir * 14.0f + dir * static_cast<float>(i) * 6.0f;
+        sf::ConvexShape scute(3);
+        scute.setPoint(0, {sx - 2.0f, c.y - 8.0f});
+        scute.setPoint(1, {sx, c.y - 13.0f});
+        scute.setPoint(2, {sx + 2.0f, c.y - 8.0f});
+        scute.setFillColor(sf::Color(dc.r * 3 / 4, dc.g * 3 / 4, dc.b * 3 / 4));
+        target.draw(scute);
+    }
+
+    // --- Legs (4 stubby legs) ---
+    float legAnim = speed > 1.0f ? std::sin(t * 8.0f) * 4.0f : 0.0f;
+    float legPositions[4] = {-0.30f, -0.10f, 0.15f, 0.35f};
+    float legPhases[4] = {0.0f, 3.14159f, 0.0f, 3.14159f};
+    for (int i = 0; i < 4; i++) {
+        float lx = c.x + dir * legPositions[i] * 45.0f;
+        float anim = speed > 1.0f ? std::sin(t * 8.0f + legPhases[i]) * 4.0f : 0.0f;
+        sf::RectangleShape leg({4.0f, 14.0f});
+        leg.setOrigin({2.0f, 0.0f});
+        leg.setPosition({lx, c.y + 8.0f});
+        leg.setRotation(sf::degrees(anim));
+        leg.setFillColor(dc);
+        target.draw(leg);
+        // Claws
+        for (float cx2 : {-1.5f, 0.0f, 1.5f}) {
+            sf::CircleShape claw(1.0f);
+            claw.setOrigin({1.0f, 1.0f});
+            claw.setPosition({lx + cx2, c.y + 22.0f});
+            claw.setFillColor(sf::Color(60, 60, 50));
+            target.draw(claw);
+        }
+    }
+
+    // --- Head / Snout (the distinctive long jaw) ---
+    float headX = c.x + dir * 20.0f;
+    float headY = c.y - 4.0f;
+
+    // Jaw opening animation when attacking
+    float jawOpen = 0.0f;
+    if (m_attackAnimTimer > 0.0f) {
+        float prog = m_attackAnimTimer / 0.2f;
+        jawOpen = std::sin(prog * 3.14159f) * 20.0f; // opens then snaps shut
+    }
+
+    // Upper jaw
+    sf::ConvexShape upperJaw(5);
+    upperJaw.setPoint(0, {headX, headY - 6.0f});
+    upperJaw.setPoint(1, {headX + dir * 8.0f, headY - 7.0f - jawOpen * 0.3f});
+    upperJaw.setPoint(2, {headX + dir * 28.0f, headY - 3.0f - jawOpen * 0.5f});
+    upperJaw.setPoint(3, {headX + dir * 30.0f, headY - jawOpen * 0.2f});
+    upperJaw.setPoint(4, {headX, headY + 2.0f});
+    upperJaw.setFillColor(dc);
+    upperJaw.setOutlineColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    upperJaw.setOutlineThickness(1.0f);
+    target.draw(upperJaw);
+
+    // Lower jaw
+    sf::ConvexShape lowerJaw(4);
+    lowerJaw.setPoint(0, {headX, headY + 2.0f});
+    lowerJaw.setPoint(1, {headX + dir * 26.0f, headY + 2.0f + jawOpen * 0.5f});
+    lowerJaw.setPoint(2, {headX + dir * 24.0f, headY + 7.0f + jawOpen * 0.4f});
+    lowerJaw.setPoint(3, {headX - dir * 2.0f, headY + 8.0f});
+    lowerJaw.setFillColor(belly);
+    lowerJaw.setOutlineColor(sf::Color(dc.r / 2, dc.g / 2, dc.b / 2));
+    lowerJaw.setOutlineThickness(1.0f);
+    target.draw(lowerJaw);
+
+    // Teeth (upper)
+    for (int i = 0; i < 5; i++) {
+        float tx = headX + dir * (6.0f + static_cast<float>(i) * 5.0f);
+        float ty = headY + 1.0f - jawOpen * 0.15f;
+        sf::ConvexShape tooth(3);
+        tooth.setPoint(0, {tx - 1.0f, ty});
+        tooth.setPoint(1, {tx, ty + 4.0f + jawOpen * 0.1f});
+        tooth.setPoint(2, {tx + 1.0f, ty});
+        tooth.setFillColor(sf::Color(240, 235, 210));
+        target.draw(tooth);
+    }
+    // Teeth (lower)
+    for (int i = 0; i < 4; i++) {
+        float tx = headX + dir * (8.0f + static_cast<float>(i) * 5.0f);
+        float ty = headY + 3.0f + jawOpen * 0.4f;
+        sf::ConvexShape tooth(3);
+        tooth.setPoint(0, {tx - 1.0f, ty});
+        tooth.setPoint(1, {tx, ty - 3.5f - jawOpen * 0.1f});
+        tooth.setPoint(2, {tx + 1.0f, ty});
+        tooth.setFillColor(sf::Color(230, 225, 200));
+        target.draw(tooth);
+    }
+
+    // Nostril bumps at tip of snout
+    for (float ns : {-1.5f, 1.5f}) {
+        sf::CircleShape nostril(1.5f);
+        nostril.setOrigin({1.5f, 1.5f});
+        nostril.setPosition({headX + dir * 28.0f, headY - 4.0f + ns});
+        nostril.setFillColor(sf::Color(dc.r * 3 / 4, dc.g * 3 / 4, dc.b / 2));
+        target.draw(nostril);
+    }
+
+    // Eyes (menacing, slit pupils on bumps)
+    for (float es : {-1.0f, 1.0f}) {
+        // Eye bump
+        sf::CircleShape eyeBump(3.5f);
+        eyeBump.setOrigin({3.5f, 3.5f});
+        eyeBump.setPosition({headX + dir * 4.0f + es * 3.0f * (dir > 0 ? 1.0f : -1.0f), headY - 9.0f});
+        eyeBump.setFillColor(dc);
+        target.draw(eyeBump);
+        // Eye
+        sf::CircleShape eye(2.5f);
+        eye.setOrigin({2.5f, 2.5f});
+        eye.setPosition({headX + dir * 4.0f + es * 3.0f * (dir > 0 ? 1.0f : -1.0f), headY - 10.0f});
+        eye.setFillColor(sf::Color(200, 180, 50));
+        target.draw(eye);
+        // Slit pupil
+        sf::RectangleShape pupil({1.0f, 4.0f});
+        pupil.setOrigin({0.5f, 2.0f});
+        pupil.setPosition({headX + dir * 4.0f + es * 3.0f * (dir > 0 ? 1.0f : -1.0f), headY - 10.0f});
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
+    }
+}
+
 void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
     sf::Vector2f sp = toScreen(getPosition());
     float dir = static_cast<float>(m_facingDir);
     float prog = 1.0f - (m_attackAnimTimer / 0.2f);
 
-    if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Unicorn) {
+    if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Crocodile) {
+        // Jaw snap effect — closing jaws with impact lines
+        float snapProg = prog; // 0 = start, 1 = fully snapped
+        float jawAngle = (1.0f - std::abs(snapProg * 2.0f - 1.0f)) * 25.0f; // opens then snaps
+
+        // Upper jaw line
+        float jawLen = m_weapon.range * PPM * 0.5f;
+        sf::ConvexShape upperJaw(3);
+        upperJaw.setPoint(0, {sp.x + dir * 10.0f, sp.y - 8.0f});
+        upperJaw.setPoint(1, {sp.x + dir * (10.0f + jawLen), sp.y - 8.0f - jawAngle * 0.5f});
+        upperJaw.setPoint(2, {sp.x + dir * (10.0f + jawLen * 0.8f), sp.y - 2.0f});
+        upperJaw.setFillColor(sf::Color(200, 200, 180, static_cast<uint8_t>(200 * (1.0f - prog))));
+        target.draw(upperJaw);
+
+        // Lower jaw line
+        sf::ConvexShape lowerJaw(3);
+        lowerJaw.setPoint(0, {sp.x + dir * 10.0f, sp.y + 4.0f});
+        lowerJaw.setPoint(1, {sp.x + dir * (10.0f + jawLen), sp.y + 4.0f + jawAngle * 0.5f});
+        lowerJaw.setPoint(2, {sp.x + dir * (10.0f + jawLen * 0.8f), sp.y});
+        lowerJaw.setFillColor(sf::Color(200, 200, 180, static_cast<uint8_t>(200 * (1.0f - prog))));
+        target.draw(lowerJaw);
+
+        // Impact crunch lines at snap moment
+        if (snapProg > 0.4f && snapProg < 0.7f) {
+            float impactX = sp.x + dir * (15.0f + jawLen * 0.6f);
+            float impactY = sp.y - 2.0f;
+            for (int i = 0; i < 6; i++) {
+                float angle = static_cast<float>(i) / 6.0f * 6.28f;
+                float len2 = 6.0f + std::sin(m_animTime * 10.0f + angle) * 3.0f;
+                sf::VertexArray line(sf::PrimitiveType::Lines, 2);
+                line[0] = sf::Vertex{{impactX, impactY}, sf::Color(255, 255, 200, 200)};
+                line[1] = sf::Vertex{{impactX + std::cos(angle) * len2,
+                                       impactY + std::sin(angle) * len2},
+                                      sf::Color(255, 255, 200, 80)};
+                target.draw(line);
+            }
+        }
+    } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Unicorn) {
         // Magical horn blast — expanding rainbow ring
         float arcR = m_weapon.range * PPM * 0.7f * prog;
         constexpr int particles = 12;
