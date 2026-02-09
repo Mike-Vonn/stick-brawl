@@ -30,8 +30,11 @@ WeaponData loadWeaponFromFile(const std::string& path) {
         if (j.contains("projectile_lifetime_seconds"))  w.projectileLifetime = j["projectile_lifetime_seconds"];
         if (j.contains("ammo"))                         w.ammo = j["ammo"];
         if (j.contains("spread_degrees"))               w.spreadDegrees = j["spread_degrees"];
+        if (j.contains("pellet_count"))                  w.pelletCount = j["pellet_count"];
         if (j.contains("affected_by_gravity"))          w.affectedByGravity = j["affected_by_gravity"];
         if (j.contains("explosion_radius"))             w.explosionRadius = j["explosion_radius"];
+        if (j.contains("destroys_platforms"))            w.destroysPlatforms = j["destroys_platforms"];
+        if (j.contains("env_damage_radius"))             w.envDamageRadius = j["env_damage_radius"];
         if (j.contains("poison_dps"))                   w.poisonDps = j["poison_dps"];
         if (j.contains("poison_duration"))              w.poisonDuration = j["poison_duration"];
         if (j.contains("sprite"))                       w.sprite = j["sprite"];

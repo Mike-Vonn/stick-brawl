@@ -21,10 +21,15 @@ struct WeaponData {
     float       projectileLifetime = 0.0f;
     int         ammo = -1;  // -1 = infinite
     float       spreadDegrees = 0.0f;
+    int         pelletCount = 1;     // >1 for shotgun-style multi-projectile
     bool        affectedByGravity = false;
 
     // Explosive
     float       explosionRadius = 0.0f;
+    bool        destroysPlatforms = false;
+
+    // Environmental damage (all weapons can chip terrain)
+    float       envDamageRadius = 0.0f;  // 0 = auto-calculate from damage
 
     // Poison (damage-over-time)
     float       poisonDps = 0.0f;

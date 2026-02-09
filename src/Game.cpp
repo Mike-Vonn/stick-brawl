@@ -66,16 +66,9 @@ void Game::processCharSelectEvents() {
                 return;
             }
 
-            // Per-player controls during select:
-            // Each player uses their attack key to join/ready, left/right to pick character
-            for (int i = 0; i < MAX_PLAYERS; i++) {
-                PlayerInput pi = m_input.getPlayerInput(i);
-                // We check raw keys here via the event
-                // Attack key = join then ready
-                // Jump key while ready = unready
-
-                // Get the key bindings by testing input
-                // We'll handle it in updateCharSelect with held keys instead
+            // Tab cycles level
+            if (k->code == sf::Keyboard::Key::Tab) {
+                m_selectedLevel = (m_selectedLevel + 1) % Arena::getLevelCount();
             }
         }
     }
@@ -388,8 +381,16 @@ void Game::renderCharSelect() {
         sf::Text title(*font, "STICKBRAWL", 36);
         title.setFillColor(sf::Color::White);
         sf::FloatRect tb = title.getLocalBounds();
-        title.setPosition({(SCREEN_WIDTH - tb.size.x) / 2.0f, 20.0f});
+        title.setPosition({(SCREEN_WIDTH - tb.size.x) / 2.0f, 12.0f});
         win.draw(title);
+
+        // Level selector
+        std::string levelStr = "Level: < " + Arena::getLevelName(m_selectedLevel) + " >  [TAB]";
+        sf::Text levelText(*font, levelStr, 18);
+        levelText.setFillColor(sf::Color(200, 180, 100));
+        sf::FloatRect lb = levelText.getLocalBounds();
+        levelText.setPosition({(SCREEN_WIDTH - lb.size.x) / 2.0f, 56.0f});
+        win.draw(levelText);
 
         if (allPlayersReady()) {
             float pulse = std::sin(m_selectAnimTimer * 4.0f) * 0.3f + 0.7f;
@@ -416,12 +417,13 @@ void Game::renderCharSelect() {
 void Game::startGame() {
     const auto& rules = m_rulesEngine.getRules();
     m_physics.setGravity(rules.gravityX, rules.gravityY);
-    m_arena.createDefaultArena(m_physics);
+    m_arena.createLevel(m_physics, m_selectedLevel);
 
     const auto& spawns = m_arena.getSpawnPoints();
     m_players.clear();
     m_projectiles.clear();
     m_pickups.clear();
+    m_explosions.clear();
 
     int playerIdx = 0;
     for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -579,6 +581,13 @@ void Game::handleMeleeAttack(StickFigure& attacker) {
             target->takeDamage(dmg, kbX, kbY);
         }
     }
+
+    // Environmental damage from melee — chip terrain in front of attacker
+    float envR = weapon.envDamageRadius;
+    if (envR <= 0.0f) envR = weapon.damage * 0.02f; // auto: scale from damage
+    float hitX = ap.x + dir * weapon.range * 0.6f;
+    float hitY = ap.y;
+    m_arena.damagePlatformsInRadius(m_physics, hitX, hitY, envR, weapon.damage * 0.3f);
 }
 
 void Game::spawnProjectile(StickFigure& shooter) {
@@ -587,43 +596,64 @@ void Game::spawnProjectile(StickFigure& shooter) {
 
     b2Vec2 pos = shooter.getPosition();
     float dir = static_cast<float>(shooter.getFacingDirection());
-    float aim = shooter.getAimAngle();
-
-    // Apply weapon spread
+    float baseAim = shooter.getAimAngle();
     float spreadRad = weapon.spreadDegrees * 3.14159f / 180.0f;
-    if (spreadRad > 0.0f) {
-        static std::mt19937 rng(std::random_device{}());
-        std::uniform_real_distribution<float> spreadDist(-spreadRad, spreadRad);
-        aim += spreadDist(rng);
+
+    static std::mt19937 rng(std::random_device{}());
+
+    int pellets = std::max(1, weapon.pelletCount);
+    for (int p = 0; p < pellets; p++) {
+        float aim = baseAim;
+
+        if (pellets > 1) {
+            // Even spread across the cone, with a little randomness
+            float evenSpread = -spreadRad + 2.0f * spreadRad * (static_cast<float>(p) / static_cast<float>(pellets - 1));
+            std::uniform_real_distribution<float> jitter(-spreadRad * 0.15f, spreadRad * 0.15f);
+            aim += evenSpread + jitter(rng);
+        } else if (spreadRad > 0.0f) {
+            std::uniform_real_distribution<float> spreadDist(-spreadRad, spreadRad);
+            aim += spreadDist(rng);
+        }
+
+        // Slight speed variance for multi-pellet
+        float speed = weapon.projectileSpeed;
+        if (pellets > 1) {
+            std::uniform_real_distribution<float> speedVar(0.85f, 1.15f);
+            speed *= speedVar(rng);
+        }
+
+        float vx = speed * dir * std::cos(aim);
+        float vy = speed * std::sin(aim);
+
+        // Smaller pellets for shotgun
+        float radius = (pellets > 1) ? 0.08f : 0.15f;
+        float mass = (pellets > 1) ? 0.05f : 0.1f;
+
+        b2BodyId bullet = m_physics.createDynamicCircle(
+            pos.x + dir * 0.5f, pos.y + 0.3f, radius, mass,
+            CAT_PROJECTILE, CAT_PLATFORM | CAT_PLAYER);
+
+        b2Body_SetBullet(bullet, true);
+        b2Body_SetLinearVelocity(bullet, {vx, vy});
+
+        if (!weapon.affectedByGravity)
+            b2Body_SetGravityScale(bullet, 0.0f);
+
+        Projectile proj;
+        proj.bodyId = bullet;
+        proj.weapon = weapon;
+        proj.ownerIndex = shooter.getPlayerIndex();
+        proj.lifetime = weapon.projectileLifetime;
+        proj.alive = true;
+
+        if (weapon.poisonDps > 0.0f && weapon.poisonDuration > 0.0f) {
+            proj.isPoison = true;
+            proj.poisonDps = weapon.poisonDps;
+            proj.poisonDuration = weapon.poisonDuration;
+        }
+
+        m_projectiles.push_back(proj);
     }
-
-    float vx = weapon.projectileSpeed * dir * std::cos(aim);
-    float vy = weapon.projectileSpeed * std::sin(aim);
-
-    b2BodyId bullet = m_physics.createDynamicCircle(
-        pos.x + dir * 0.5f, pos.y + 0.3f, 0.15f, 0.1f,
-        CAT_PROJECTILE, CAT_PLATFORM | CAT_PLAYER);
-
-    b2Body_SetBullet(bullet, true);
-    b2Body_SetLinearVelocity(bullet, {vx, vy});
-
-    if (!weapon.affectedByGravity)
-        b2Body_SetGravityScale(bullet, 0.0f);
-
-    Projectile proj;
-    proj.bodyId = bullet;
-    proj.weapon = weapon;
-    proj.ownerIndex = shooter.getPlayerIndex();
-    proj.lifetime = weapon.projectileLifetime;
-    proj.alive = true;
-
-    if (weapon.poisonDps > 0.0f && weapon.poisonDuration > 0.0f) {
-        proj.isPoison = true;
-        proj.poisonDps = weapon.poisonDps;
-        proj.poisonDuration = weapon.poisonDuration;
-    }
-
-    m_projectiles.push_back(proj);
 }
 
 void Game::updateProjectiles(float dt) {
@@ -632,15 +662,35 @@ void Game::updateProjectiles(float dt) {
     for (auto& proj : m_projectiles) {
         if (!proj.alive) continue;
         proj.lifetime -= dt;
-        if (proj.lifetime <= 0.0f) {
-            proj.alive = false;
-            continue;
-        }
 
         b2Vec2 pp = b2Body_GetPosition(proj.bodyId);
         bool isExplosive = (proj.weapon.type == WeaponType::Explosive);
         float hitR = isExplosive ? proj.weapon.explosionRadius : 0.6f;
 
+        // Check if explosive projectile has stopped moving (hit a platform)
+        bool contactDetonation = false;
+        if (isExplosive && proj.lifetime < proj.weapon.projectileLifetime - 0.1f) {
+            b2Vec2 vel = b2Body_GetLinearVelocity(proj.bodyId);
+            float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
+            if (speed < 1.0f) contactDetonation = true;
+        }
+
+        // Lifetime expiry for explosives = detonate in place
+        bool expired = proj.lifetime <= 0.0f;
+        bool shouldDetonate = contactDetonation || (expired && isExplosive);
+
+        if (expired && !isExplosive) {
+            // Small env damage where bullet lands
+            float envR = proj.weapon.envDamageRadius;
+            if (envR <= 0.0f) envR = proj.weapon.damage * 0.02f;
+            m_arena.damagePlatformsInRadius(m_physics, pp.x, pp.y, envR,
+                                            proj.weapon.damage * 0.2f);
+            proj.alive = false;
+            continue;
+        }
+
+        // Check player hits
+        bool hitAnyPlayer = false;
         for (auto& player : m_players) {
             if (player->getPlayerIndex() == proj.ownerIndex) continue;
             if (!player->isAlive()) continue;
@@ -649,7 +699,10 @@ void Game::updateProjectiles(float dt) {
             float dx = pp.x - plp.x, dy = pp.y - plp.y;
             float dist = std::sqrt(dx * dx + dy * dy);
 
-            if (dist < hitR) {
+            // For non-explosive: check close hit. For explosive: check blast radius on detonation
+            float checkR = isExplosive ? (shouldDetonate ? hitR : 0.6f) : 0.6f;
+
+            if (dist < checkR) {
                 if (proj.isPoison) {
                     player->takeDamage(5.0f, 0.0f, 0.0f);
                     player->applyPoison(proj.poisonDps, proj.poisonDuration);
@@ -666,24 +719,67 @@ void Game::updateProjectiles(float dt) {
                 }
 
                 if (!isExplosive) {
+                    // Projectile impact env damage
+                    float envR = proj.weapon.envDamageRadius;
+                    if (envR <= 0.0f) envR = proj.weapon.damage * 0.03f;
+                    m_arena.damagePlatformsInRadius(m_physics, pp.x, pp.y, envR,
+                                                    proj.weapon.damage * 0.4f);
                     proj.alive = false;
                     break;
                 }
+                hitAnyPlayer = true;
+                shouldDetonate = true;
             }
         }
 
-        if (isExplosive) {
-            for (const auto& player : m_players) {
-                if (player->getPlayerIndex() == proj.ownerIndex) continue;
-                if (!player->isAlive()) continue;
-                b2Vec2 plp = player->getPosition();
-                float dx = pp.x - plp.x, dy = pp.y - plp.y;
-                float dist = std::sqrt(dx * dx + dy * dy);
-                if (dist < hitR) { proj.alive = false; break; }
+        // Detonate explosive (contact, timer, or direct hit)
+        if (isExplosive && shouldDetonate && proj.alive) {
+            // Damage all players in blast radius (if we haven't already from the loop above)
+            if (!hitAnyPlayer) {
+                for (auto& player : m_players) {
+                    if (player->getPlayerIndex() == proj.ownerIndex) continue;
+                    if (!player->isAlive()) continue;
+                    b2Vec2 plp = player->getPosition();
+                    float dx = pp.x - plp.x, dy = pp.y - plp.y;
+                    float dist = std::sqrt(dx * dx + dy * dy);
+                    if (dist < hitR) {
+                        float dmg = proj.weapon.damage * rules.damageMultiplier;
+                        float falloff = 1.0f - (dist / proj.weapon.explosionRadius);
+                        dmg *= std::max(0.3f, falloff);
+                        float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
+                        float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
+                        float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
+                        player->takeDamage(dmg, kbX, kbY);
+                    }
+                }
             }
+
+            // Destroy platforms if this weapon has that property
+            if (proj.weapon.destroysPlatforms) {
+                m_arena.destroyPlatformsInRadius(m_physics, pp.x, pp.y, proj.weapon.explosionRadius);
+            } else {
+                // Regular explosives still damage terrain
+                float envR = proj.weapon.explosionRadius * 0.6f;
+                m_arena.damagePlatformsInRadius(m_physics, pp.x, pp.y, envR,
+                                                proj.weapon.damage * 0.8f);
+            }
+
+            // Spawn visual explosion effect
+            ExplosionEffect fx;
+            fx.x = pp.x;
+            fx.y = pp.y;
+            fx.radius = proj.weapon.explosionRadius;
+            fx.timer = 0.0f;
+            fx.isNuke = proj.weapon.destroysPlatforms;
+            fx.duration = fx.isNuke ? 2.5f : 0.8f;
+            fx.alive = true;
+            m_explosions.push_back(fx);
+
+            proj.alive = false;
         }
     }
 
+    // Deferred body destruction
     for (auto& proj : m_projectiles) {
         if (!proj.alive) b2DestroyBody(proj.bodyId);
     }
@@ -691,6 +787,16 @@ void Game::updateProjectiles(float dt) {
         std::remove_if(m_projectiles.begin(), m_projectiles.end(),
                         [](const Projectile& p) { return !p.alive; }),
         m_projectiles.end());
+
+    // Update explosion effects
+    for (auto& fx : m_explosions) {
+        fx.timer += dt;
+        if (fx.timer >= fx.duration) fx.alive = false;
+    }
+    m_explosions.erase(
+        std::remove_if(m_explosions.begin(), m_explosions.end(),
+                        [](const ExplosionEffect& e) { return !e.alive; }),
+        m_explosions.end());
 }
 
 void Game::updateWeaponSpawns(float dt) {
@@ -805,13 +911,154 @@ void Game::render() {
     for (const auto& proj : m_projectiles) {
         if (!proj.alive) continue;
         b2Vec2 pos = b2Body_GetPosition(proj.bodyId);
-        sf::CircleShape c(4.0f); c.setOrigin({4.0f, 4.0f});
-        c.setPosition({SCREEN_CX + pos.x * PPM, SCREEN_CY - pos.y * PPM});
-        if (proj.isPoison)
+        sf::Vector2f sp = {SCREEN_CX + pos.x * PPM, SCREEN_CY - pos.y * PPM};
+
+        if (proj.weapon.destroysPlatforms) {
+            // Nuke grenade: pulsing radioactive green with hazard symbol
+            float pulse = std::sin(proj.lifetime * 8.0f) * 0.3f + 0.7f;
+            sf::CircleShape c(6.0f);
+            c.setOrigin({6.0f, 6.0f});
+            c.setPosition(sp);
+            c.setFillColor(sf::Color(static_cast<uint8_t>(50 * pulse),
+                                      static_cast<uint8_t>(255 * pulse), 0, 230));
+            c.setOutlineColor(sf::Color(255, 255, 0, 180));
+            c.setOutlineThickness(1.5f);
+            m_renderer.getWindow().draw(c);
+            // Radiation ring
+            sf::CircleShape ring(9.0f);
+            ring.setOrigin({9.0f, 9.0f});
+            ring.setPosition(sp);
+            ring.setFillColor(sf::Color::Transparent);
+            ring.setOutlineColor(sf::Color(255, 255, 0, static_cast<uint8_t>(80 * pulse)));
+            ring.setOutlineThickness(1.0f);
+            m_renderer.getWindow().draw(ring);
+        } else if (proj.isPoison) {
+            sf::CircleShape c(4.0f); c.setOrigin({4.0f, 4.0f});
+            c.setPosition(sp);
             c.setFillColor(sf::Color(0, 220, 0));
-        else
-            c.setFillColor(sf::Color::Yellow);
-        m_renderer.getWindow().draw(c);
+            m_renderer.getWindow().draw(c);
+        } else {
+            // Regular bullets / shotgun pellets
+            float sz = (proj.weapon.pelletCount > 1) ? 2.0f : 4.0f;
+            sf::CircleShape c(sz); c.setOrigin({sz, sz});
+            c.setPosition(sp);
+            if (proj.weapon.pelletCount > 1)
+                c.setFillColor(sf::Color(255, 180, 80)); // orange pellets
+            else
+                c.setFillColor(sf::Color::Yellow);
+            m_renderer.getWindow().draw(c);
+        }
+    }
+
+    // Draw explosion effects
+    for (const auto& fx : m_explosions) {
+        if (!fx.alive) continue;
+        float progress = fx.timer / fx.duration;
+        sf::Vector2f ep = {SCREEN_CX + fx.x * PPM, SCREEN_CY - fx.y * PPM};
+        float blastPx = fx.radius * PPM;
+
+        if (fx.isNuke) {
+            // === NUCLEAR EXPLOSION ===
+
+            // Screen flash (white overlay fading out)
+            if (progress < 0.3f) {
+                float flashAlpha = (1.0f - progress / 0.3f) * 0.6f;
+                sf::RectangleShape flash({SCREEN_WIDTH, SCREEN_HEIGHT});
+                flash.setFillColor(sf::Color(255, 255, 255,
+                    static_cast<uint8_t>(flashAlpha * 255)));
+                m_renderer.getWindow().draw(flash);
+            }
+
+            // Expanding fireball (orange->red->dark)
+            float fireR = blastPx * std::min(1.0f, progress * 3.0f);
+            if (progress < 0.6f) {
+                float fireAlpha = 1.0f - (progress / 0.6f);
+                sf::CircleShape fireball(fireR);
+                fireball.setOrigin({fireR, fireR});
+                fireball.setPosition(ep);
+                uint8_t r = static_cast<uint8_t>(255 - progress * 200);
+                uint8_t g = static_cast<uint8_t>(std::max(0.0f, 150 - progress * 400));
+                fireball.setFillColor(sf::Color(r, g, 0, static_cast<uint8_t>(fireAlpha * 180)));
+                m_renderer.getWindow().draw(fireball);
+            }
+
+            // Mushroom cloud stem
+            if (progress > 0.1f && progress < 0.9f) {
+                float stemProgress = (progress - 0.1f) / 0.8f;
+                float stemH = blastPx * 2.5f * stemProgress;
+                float stemW = blastPx * 0.3f * (1.0f - stemProgress * 0.3f);
+                uint8_t stemAlpha = static_cast<uint8_t>((1.0f - stemProgress) * 150);
+                sf::RectangleShape stem({stemW, stemH});
+                stem.setOrigin({stemW / 2.0f, stemH});
+                stem.setPosition(ep);
+                stem.setFillColor(sf::Color(120, 80, 40, stemAlpha));
+                m_renderer.getWindow().draw(stem);
+
+                // Mushroom cap
+                float capR = blastPx * 0.8f * (0.5f + stemProgress * 0.5f);
+                float capY = ep.y - stemH;
+                sf::CircleShape cap(capR);
+                cap.setScale({1.5f, 0.8f});
+                cap.setOrigin({capR, capR});
+                cap.setPosition({ep.x, capY});
+                cap.setFillColor(sf::Color(100, 60, 30, stemAlpha));
+                m_renderer.getWindow().draw(cap);
+
+                // Cap highlight
+                sf::CircleShape capTop(capR * 0.6f);
+                capTop.setScale({1.5f, 0.7f});
+                capTop.setOrigin({capR * 0.6f, capR * 0.6f});
+                capTop.setPosition({ep.x, capY - capR * 0.15f});
+                capTop.setFillColor(sf::Color(180, 100, 30, static_cast<uint8_t>(stemAlpha * 0.6f)));
+                m_renderer.getWindow().draw(capTop);
+            }
+
+            // Shockwave ring
+            if (progress < 0.5f) {
+                float ringR = blastPx * 1.5f * (progress / 0.5f);
+                float ringAlpha = 1.0f - (progress / 0.5f);
+                sf::CircleShape ring(ringR);
+                ring.setOrigin({ringR, ringR});
+                ring.setPosition(ep);
+                ring.setFillColor(sf::Color::Transparent);
+                ring.setOutlineColor(sf::Color(255, 200, 100, static_cast<uint8_t>(ringAlpha * 200)));
+                ring.setOutlineThickness(3.0f);
+                m_renderer.getWindow().draw(ring);
+            }
+
+            // Debris particles
+            float debrisPhase = progress * 20.0f;
+            int debrisCount = static_cast<int>(12 * (1.0f - progress));
+            for (int d = 0; d < debrisCount; d++) {
+                float angle = static_cast<float>(d) * 0.52f + debrisPhase;
+                float dist = blastPx * progress * (0.5f + std::sin(angle * 3.0f) * 0.5f);
+                float dx = std::cos(angle) * dist;
+                float dy = std::sin(angle) * dist - progress * blastPx * 0.5f; // arc upward
+                float sz = 2.0f * (1.0f - progress);
+                sf::CircleShape debris(sz);
+                debris.setOrigin({sz, sz});
+                debris.setPosition({ep.x + dx, ep.y + dy});
+                debris.setFillColor(sf::Color(200, 100 + d * 10, 0,
+                    static_cast<uint8_t>((1.0f - progress) * 200)));
+                m_renderer.getWindow().draw(debris);
+            }
+
+        } else {
+            // === REGULAR EXPLOSION ===
+            float r = blastPx * progress;
+            float alpha = 1.0f - progress;
+            sf::CircleShape blast(r);
+            blast.setOrigin({r, r});
+            blast.setPosition(ep);
+            blast.setFillColor(sf::Color(255, 150, 0, static_cast<uint8_t>(alpha * 150)));
+            m_renderer.getWindow().draw(blast);
+
+            sf::CircleShape core(r * 0.5f);
+            core.setOrigin({r * 0.5f, r * 0.5f});
+            core.setPosition(ep);
+            core.setFillColor(sf::Color(255, 255, 200, static_cast<uint8_t>(alpha * 200)));
+            m_renderer.getWindow().draw(core);
+        }
     }
 
     m_hud.draw(m_renderer.getWindow(), m_players, m_roundTimer);

@@ -31,6 +31,15 @@ struct WeaponPickup {
     bool alive = true;
 };
 
+struct ExplosionEffect {
+    float x, y;              // world position
+    float radius;            // blast radius in meters
+    float timer = 0.0f;      // time since detonation
+    float duration = 1.5f;   // how long the effect lasts
+    bool isNuke = false;     // nuke gets special visuals
+    bool alive = true;
+};
+
 // Per-player selection state during character select
 struct PlayerSelectState {
     bool joined = false;
@@ -84,10 +93,12 @@ private:
     std::vector<std::unique_ptr<StickFigure>> m_players;
     std::vector<Projectile> m_projectiles;
     std::vector<WeaponPickup> m_pickups;
+    std::vector<ExplosionEffect> m_explosions;
 
     // Character select state
     std::array<PlayerSelectState, MAX_PLAYERS> m_selectState;
     float m_selectAnimTimer = 0.0f;
+    int   m_selectedLevel = 0;
 
     static constexpr sf::Color m_playerColors[MAX_PLAYERS] = {
         sf::Color(100, 180, 255),  // Blue

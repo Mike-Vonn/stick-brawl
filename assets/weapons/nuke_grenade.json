@@ -1,0 +1,19 @@
+{
+    "name": "Nuclear Hand Grenade",
+    "type": "explosive",
+    "damage": 80,
+    "knockback_force": 40.0,
+    "range": 50.0,
+    "attack_rate_seconds": 2.0,
+    "projectile_speed": 12.0,
+    "projectile_lifetime_seconds": 3.0,
+    "explosion_radius": 8.0,
+    "ammo": 1,
+    "affected_by_gravity": true,
+    "destroys_platforms": true,
+    "sprite": "",
+    "projectile_sprite": "",
+    "sound_fire": "",
+    "sound_explode": "",
+    "description": "A handheld nuclear device. Destroys everything — including the ground beneath your feet."
+}

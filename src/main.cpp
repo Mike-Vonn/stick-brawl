@@ -10,7 +10,8 @@ int main() {
     std::cout << "  Player 4: Numpad 4/6/8 move, Num5 attack, Num7/9 aim\n";
     std::cout << "  Player 5: Z/C move, X jump, V attack, B/N aim\n";
     std::cout << "\n";
-    std::cout << "  Character Select: Use your LEFT/RIGHT to pick, ATK to ready!\n";
+    std::cout << "  Character Select: LEFT/RIGHT to pick character, ATK to ready\n";
+    std::cout << "  TAB to cycle levels | ENTER/SPACE to start\n";
     std::cout << "  Walk over glowing boxes to pick up weapons!\n";
     std::cout << "  ESC to quit, R to restart round, Backspace to return to select\n\n";
 
