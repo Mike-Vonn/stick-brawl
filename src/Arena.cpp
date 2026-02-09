@@ -5,20 +5,8 @@
 #include <iostream>
 
 // ============================================================
-// PLATFORM TYPE PROPERTIES
+// PLATFORM TYPE COLORS
 // ============================================================
-
-float Arena::healthForType(PlatformType type) {
-    switch (type) {
-        case PlatformType::Wood:   return 60.0f;
-        case PlatformType::Brick:  return 120.0f;
-        case PlatformType::Stone:  return 180.0f;
-        case PlatformType::Metal:  return 300.0f;
-        case PlatformType::Roof:   return 50.0f;
-        case PlatformType::Ground: return 500.0f;
-        default: return 100.0f;
-    }
-}
 
 sf::Color Arena::fillColorForType(PlatformType type) {
     switch (type) {
@@ -66,8 +54,6 @@ void Arena::addPlatform(Physics& physics, float cx, float cy, float hw, float hh
     p.bodyId = physics.createStaticBox(cx, cy, hw, hh, CAT_PLATFORM);
     p.alive = true;
     p.type = type;
-    p.maxHealth = healthForType(type);
-    p.health = p.maxHealth;
     m_platforms.push_back(p);
 }
 
@@ -94,7 +80,6 @@ void Arena::createLevel(Physics& physics, int levelIndex) {
 // ============================================================
 
 void Arena::buildClassic(Physics& physics) {
-    // Original layout
     addPlatform(physics, 0.0f, -5.0f, 15.0f, 0.5f, PlatformType::Ground);
     addPlatform(physics, -8.0f, -1.0f, 3.0f, 0.3f, PlatformType::Stone);
     addPlatform(physics, 8.0f, -1.0f, 3.0f, 0.3f, PlatformType::Stone);
@@ -109,46 +94,33 @@ void Arena::buildClassic(Physics& physics) {
 }
 
 void Arena::buildVillage(Physics& physics) {
-    // Ground
     addPlatform(physics, 0.0f, -6.0f, 18.0f, 0.5f, PlatformType::Ground);
 
-    // === Left house ===
-    // Floor
+    // Left house
     addPlatform(physics, -11.0f, -4.0f, 3.5f, 0.2f, PlatformType::Wood);
-    // Left wall
     addPlatform(physics, -14.3f, -2.5f, 0.3f, 1.7f, PlatformType::Brick);
-    // Right wall
     addPlatform(physics, -7.7f, -2.5f, 0.3f, 1.7f, PlatformType::Brick);
-    // Roof
     addPlatform(physics, -11.0f, -0.6f, 4.0f, 0.2f, PlatformType::Roof);
-    // Interior shelf
     addPlatform(physics, -12.0f, -2.8f, 1.2f, 0.15f, PlatformType::Wood);
 
-    // === Center market stall ===
+    // Center market stall
     addPlatform(physics, 0.0f, -3.5f, 2.0f, 0.15f, PlatformType::Wood);
-    // Stall posts (thin walls)
     addPlatform(physics, -1.8f, -4.5f, 0.15f, 1.2f, PlatformType::Wood);
     addPlatform(physics, 1.8f, -4.5f, 0.15f, 1.2f, PlatformType::Wood);
 
-    // === Right house (taller, stone) ===
-    // Floor
+    // Right house (2-story)
     addPlatform(physics, 10.0f, -4.0f, 3.0f, 0.2f, PlatformType::Stone);
-    // Walls
     addPlatform(physics, 7.2f, -2.0f, 0.3f, 2.2f, PlatformType::Stone);
     addPlatform(physics, 12.8f, -2.0f, 0.3f, 2.2f, PlatformType::Stone);
-    // Second floor
     addPlatform(physics, 10.0f, -0.5f, 3.0f, 0.2f, PlatformType::Wood);
-    // Upper walls
     addPlatform(physics, 7.2f, 1.2f, 0.3f, 1.5f, PlatformType::Brick);
     addPlatform(physics, 12.8f, 1.2f, 0.3f, 1.5f, PlatformType::Brick);
-    // Roof
     addPlatform(physics, 10.0f, 2.9f, 3.5f, 0.2f, PlatformType::Roof);
 
-    // === Small fence/wall in middle ===
+    // Fences
     addPlatform(physics, -4.0f, -4.8f, 0.2f, 0.8f, PlatformType::Wood);
     addPlatform(physics, 4.0f, -4.8f, 0.2f, 0.8f, PlatformType::Wood);
 
-    // Floating platform high up
     addPlatform(physics, -3.0f, 3.0f, 2.0f, 0.2f, PlatformType::Metal);
 
     m_spawnPoints = {
@@ -158,23 +130,18 @@ void Arena::buildVillage(Physics& physics) {
 }
 
 void Arena::buildFortress(Physics& physics) {
-    // Ground with a moat gap in the center
     addPlatform(physics, -10.0f, -6.0f, 8.0f, 0.5f, PlatformType::Ground);
     addPlatform(physics, 10.0f, -6.0f, 8.0f, 0.5f, PlatformType::Ground);
 
-    // === Left fortress tower ===
-    // Base
+    // Left tower
     addPlatform(physics, -12.0f, -4.0f, 2.5f, 0.3f, PlatformType::Stone);
-    // Tower walls
     addPlatform(physics, -14.3f, -1.5f, 0.4f, 2.8f, PlatformType::Stone);
     addPlatform(physics, -9.7f, -1.5f, 0.4f, 2.8f, PlatformType::Stone);
-    // Battlements floor
     addPlatform(physics, -12.0f, 1.5f, 3.0f, 0.2f, PlatformType::Stone);
-    // Battlement walls (short)
     addPlatform(physics, -14.5f, 2.3f, 0.3f, 0.6f, PlatformType::Stone);
     addPlatform(physics, -9.5f, 2.3f, 0.3f, 0.6f, PlatformType::Stone);
 
-    // === Right fortress tower ===
+    // Right tower
     addPlatform(physics, 12.0f, -4.0f, 2.5f, 0.3f, PlatformType::Stone);
     addPlatform(physics, 14.3f, -1.5f, 0.4f, 2.8f, PlatformType::Stone);
     addPlatform(physics, 9.7f, -1.5f, 0.4f, 2.8f, PlatformType::Stone);
@@ -182,17 +149,13 @@ void Arena::buildFortress(Physics& physics) {
     addPlatform(physics, 14.5f, 2.3f, 0.3f, 0.6f, PlatformType::Stone);
     addPlatform(physics, 9.5f, 2.3f, 0.3f, 0.6f, PlatformType::Stone);
 
-    // === Central bridge (wood, destructible!) ===
+    // Bridge
     addPlatform(physics, -3.0f, -3.0f, 2.5f, 0.2f, PlatformType::Wood);
     addPlatform(physics, 3.0f, -3.0f, 2.5f, 0.2f, PlatformType::Wood);
-    // Bridge supports
     addPlatform(physics, -5.2f, -4.5f, 0.2f, 1.3f, PlatformType::Wood);
     addPlatform(physics, 5.2f, -4.5f, 0.2f, 1.3f, PlatformType::Wood);
 
-    // Central arena platform
     addPlatform(physics, 0.0f, 0.5f, 2.0f, 0.2f, PlatformType::Metal);
-
-    // High floating platforms
     addPlatform(physics, -6.0f, 4.0f, 1.5f, 0.2f, PlatformType::Metal);
     addPlatform(physics, 6.0f, 4.0f, 1.5f, 0.2f, PlatformType::Metal);
     addPlatform(physics, 0.0f, 5.5f, 1.0f, 0.15f, PlatformType::Metal);
@@ -204,39 +167,35 @@ void Arena::buildFortress(Physics& physics) {
 }
 
 void Arena::buildSkyscrapers(Physics& physics) {
-    // No main ground — just buildings rising from the void
-    // Fall = death
-
-    // === Left building (short, wide) ===
+    // Left building
     addPlatform(physics, -13.0f, -2.0f, 3.0f, 0.3f, PlatformType::Metal);
     addPlatform(physics, -15.8f, -4.0f, 0.3f, 2.3f, PlatformType::Metal);
     addPlatform(physics, -10.2f, -4.0f, 0.3f, 2.3f, PlatformType::Metal);
-    // Interior floors
     addPlatform(physics, -13.0f, -4.5f, 2.5f, 0.15f, PlatformType::Metal);
 
-    // === Center-left building (tall) ===
-    addPlatform(physics, -5.0f, 2.0f, 2.0f, 0.3f, PlatformType::Metal); // roof
+    // Center-left building
+    addPlatform(physics, -5.0f, 2.0f, 2.0f, 0.3f, PlatformType::Metal);
     addPlatform(physics, -6.8f, -1.0f, 0.3f, 3.3f, PlatformType::Stone);
     addPlatform(physics, -3.2f, -1.0f, 0.3f, 3.3f, PlatformType::Stone);
-    addPlatform(physics, -5.0f, -1.5f, 1.5f, 0.15f, PlatformType::Wood); // floor 1
-    addPlatform(physics, -5.0f, 0.5f, 1.5f, 0.15f, PlatformType::Wood);  // floor 2
+    addPlatform(physics, -5.0f, -1.5f, 1.5f, 0.15f, PlatformType::Wood);
+    addPlatform(physics, -5.0f, 0.5f, 1.5f, 0.15f, PlatformType::Wood);
 
-    // === Center-right building (tallest) ===
-    addPlatform(physics, 4.0f, 4.0f, 2.5f, 0.3f, PlatformType::Metal); // roof
+    // Center-right building (tallest)
+    addPlatform(physics, 4.0f, 4.0f, 2.5f, 0.3f, PlatformType::Metal);
     addPlatform(physics, 1.7f, 0.5f, 0.3f, 3.8f, PlatformType::Stone);
     addPlatform(physics, 6.3f, 0.5f, 0.3f, 3.8f, PlatformType::Stone);
-    addPlatform(physics, 4.0f, -1.0f, 2.0f, 0.15f, PlatformType::Wood); // floor 1
-    addPlatform(physics, 4.0f, 1.0f, 2.0f, 0.15f, PlatformType::Wood);  // floor 2
-    addPlatform(physics, 4.0f, 3.0f, 2.0f, 0.15f, PlatformType::Wood);  // floor 3
+    addPlatform(physics, 4.0f, -1.0f, 2.0f, 0.15f, PlatformType::Wood);
+    addPlatform(physics, 4.0f, 1.0f, 2.0f, 0.15f, PlatformType::Wood);
+    addPlatform(physics, 4.0f, 3.0f, 2.0f, 0.15f, PlatformType::Wood);
 
-    // === Right building (medium) ===
+    // Right building
     addPlatform(physics, 13.0f, 0.0f, 2.5f, 0.3f, PlatformType::Metal);
     addPlatform(physics, 10.7f, -3.0f, 0.3f, 3.3f, PlatformType::Brick);
     addPlatform(physics, 15.3f, -3.0f, 0.3f, 3.3f, PlatformType::Brick);
     addPlatform(physics, 13.0f, -2.5f, 2.0f, 0.15f, PlatformType::Wood);
     addPlatform(physics, 13.0f, -0.5f, 2.0f, 0.15f, PlatformType::Wood);
 
-    // Connecting bridges between buildings (fragile)
+    // Bridges
     addPlatform(physics, -9.0f, -1.0f, 1.2f, 0.12f, PlatformType::Wood);
     addPlatform(physics, -0.5f, 1.5f, 1.5f, 0.12f, PlatformType::Wood);
     addPlatform(physics, 9.0f, 1.0f, 1.5f, 0.12f, PlatformType::Wood);
@@ -267,88 +226,158 @@ b2Vec2 Arena::getRandomPlatformTop() const {
 }
 
 // ============================================================
-// DAMAGE / DESTRUCTION
+// WORMS-STYLE TERRAIN CARVING
 // ============================================================
+//
+// Carves a circular hole out of all overlapping platforms.
+// Each affected platform is destroyed and replaced by up to 4
+// axis-aligned remnant rectangles (left, right, top, bottom)
+// from the portions outside the carve circle's bounding box.
+//
+//   +--[===LEFT===]--[  CARVED  ]--[==RIGHT==]--+
+//   |                [  circle  ]                |
+//   +--[=============BOTTOM=============]--------+
+//   +--[==============TOP===============]--------+
+//
+// Tiny remnants (< minimum size) are discarded. This gives a
+// chunky, blocky deformation that looks like Worms terrain.
 
-void Arena::damagePlatformsInRadius(Physics& physics, float ex, float ey, float radius, float damage) {
+int Arena::carveCircle(Physics& physics, float ex, float ey, float radius) {
+    if (radius < 0.05f) return 0;
+
+    int affected = 0;
     std::vector<Platform> newPlatforms;
-    bool anyDestroyed = false;
+
+    // Carve bounding box
+    float carveLeft   = ex - radius;
+    float carveRight  = ex + radius;
+    float carveBottom = ey - radius;
+    float carveTop    = ey + radius;
+
+    constexpr float MIN_HW = 0.15f; // minimum half-width for a remnant
+    constexpr float MIN_HH = 0.08f; // minimum half-height for a remnant
 
     for (auto& plat : m_platforms) {
         if (!plat.alive) continue;
 
-        float platLeft  = plat.cx - plat.halfWidth;
-        float platRight = plat.cx + plat.halfWidth;
-        float platBot   = plat.cy - plat.halfHeight;
-        float platTop   = plat.cy + plat.halfHeight;
+        float pLeft   = plat.cx - plat.halfWidth;
+        float pRight  = plat.cx + plat.halfWidth;
+        float pBottom = plat.cy - plat.halfHeight;
+        float pTop    = plat.cy + plat.halfHeight;
 
-        float closestX = std::clamp(ex, platLeft, platRight);
-        float closestY = std::clamp(ey, platBot, platTop);
+        // Quick AABB check: does the carve bbox overlap the platform?
+        if (carveRight < pLeft || carveLeft > pRight ||
+            carveTop < pBottom || carveBottom > pTop) continue;
+
+        // Finer check: closest point on rect to circle center
+        float closestX = std::clamp(ex, pLeft, pRight);
+        float closestY = std::clamp(ey, pBottom, pTop);
         float dx = ex - closestX;
         float dy = ey - closestY;
-        float distSq = dx * dx + dy * dy;
+        if (dx * dx + dy * dy >= radius * radius) continue;
 
-        if (distSq >= radius * radius) continue;
+        // This platform IS affected — destroy it
+        affected++;
+        b2DestroyBody(plat.bodyId);
+        plat.alive = false;
 
-        // Scale damage by distance
-        float dist = std::sqrt(distSq);
-        float falloff = 1.0f - (dist / radius);
-        float actualDmg = damage * std::max(0.2f, falloff);
+        PlatformType type = plat.type;
 
-        plat.health -= actualDmg;
+        // Clamp carve bbox to the platform bounds
+        float cLeft   = std::max(carveLeft,   pLeft);
+        float cRight  = std::min(carveRight,  pRight);
+        float cBottom = std::max(carveBottom, pBottom);
+        float cTop    = std::min(carveTop,    pTop);
 
-        if (plat.health <= 0.0f) {
-            // Platform destroyed — use the splitting logic
-            b2DestroyBody(plat.bodyId);
-            plat.alive = false;
-            anyDestroyed = true;
+        // LEFT remnant: from platform left edge to carve left edge, full height
+        {
+            float rLeft  = pLeft;
+            float rRight = cLeft;
+            float hw = (rRight - rLeft) / 2.0f;
+            if (hw > MIN_HW) {
+                Platform r;
+                r.cx = rLeft + hw;
+                r.cy = plat.cy;
+                r.halfWidth = hw;
+                r.halfHeight = plat.halfHeight;
+                r.type = type;
+                r.alive = true;
+                r.bodyId = physics.createStaticBox(r.cx, r.cy, r.halfWidth, r.halfHeight, CAT_PLATFORM);
+                newPlatforms.push_back(r);
+            }
+        }
 
-            // Only create remnants for wide platforms
-            if (plat.halfWidth > 1.0f) {
-                float blastLeft  = ex - radius * 0.5f;
-                float blastRight = ex + radius * 0.5f;
-                float overlapLeft  = std::max(platLeft, blastLeft);
-                float overlapRight = std::min(platRight, blastRight);
+        // RIGHT remnant: from carve right edge to platform right edge, full height
+        {
+            float rLeft  = cRight;
+            float rRight = pRight;
+            float hw = (rRight - rLeft) / 2.0f;
+            if (hw > MIN_HW) {
+                Platform r;
+                r.cx = rLeft + hw;
+                r.cy = plat.cy;
+                r.halfWidth = hw;
+                r.halfHeight = plat.halfHeight;
+                r.type = type;
+                r.alive = true;
+                r.bodyId = physics.createStaticBox(r.cx, r.cy, r.halfWidth, r.halfHeight, CAT_PLATFORM);
+                newPlatforms.push_back(r);
+            }
+        }
 
-                float leftW = (overlapLeft - platLeft) / 2.0f;
-                if (leftW > 0.4f) {
-                    Platform r;
-                    r.halfWidth = leftW; r.halfHeight = plat.halfHeight;
-                    r.cx = platLeft + leftW; r.cy = plat.cy;
-                    r.bodyId = physics.createStaticBox(r.cx, r.cy, r.halfWidth, r.halfHeight, CAT_PLATFORM);
-                    r.alive = true; r.type = plat.type;
-                    r.maxHealth = plat.maxHealth * 0.6f;
-                    r.health = r.maxHealth;
-                    newPlatforms.push_back(r);
-                }
-                float rightW = (platRight - overlapRight) / 2.0f;
-                if (rightW > 0.4f) {
-                    Platform r;
-                    r.halfWidth = rightW; r.halfHeight = plat.halfHeight;
-                    r.cx = overlapRight + rightW; r.cy = plat.cy;
-                    r.bodyId = physics.createStaticBox(r.cx, r.cy, r.halfWidth, r.halfHeight, CAT_PLATFORM);
-                    r.alive = true; r.type = plat.type;
-                    r.maxHealth = plat.maxHealth * 0.6f;
-                    r.health = r.maxHealth;
-                    newPlatforms.push_back(r);
-                }
+        // BOTTOM remnant: within the carve X range, from platform bottom to carve bottom
+        {
+            float rLeft   = cLeft;
+            float rRight  = cRight;
+            float rBottom = pBottom;
+            float rTop    = cBottom;
+            float hw = (rRight - rLeft) / 2.0f;
+            float hh = (rTop - rBottom) / 2.0f;
+            if (hw > MIN_HW && hh > MIN_HH) {
+                Platform r;
+                r.cx = rLeft + hw;
+                r.cy = rBottom + hh;
+                r.halfWidth = hw;
+                r.halfHeight = hh;
+                r.type = type;
+                r.alive = true;
+                r.bodyId = physics.createStaticBox(r.cx, r.cy, r.halfWidth, r.halfHeight, CAT_PLATFORM);
+                newPlatforms.push_back(r);
+            }
+        }
+
+        // TOP remnant: within the carve X range, from carve top to platform top
+        {
+            float rLeft   = cLeft;
+            float rRight  = cRight;
+            float rBottom = cTop;
+            float rTop    = pTop;
+            float hw = (rRight - rLeft) / 2.0f;
+            float hh = (rTop - rBottom) / 2.0f;
+            if (hw > MIN_HW && hh > MIN_HH) {
+                Platform r;
+                r.cx = rLeft + hw;
+                r.cy = rBottom + hh;
+                r.halfWidth = hw;
+                r.halfHeight = hh;
+                r.type = type;
+                r.alive = true;
+                r.bodyId = physics.createStaticBox(r.cx, r.cy, r.halfWidth, r.halfHeight, CAT_PLATFORM);
+                newPlatforms.push_back(r);
             }
         }
     }
 
-    if (anyDestroyed) {
+    // Clean up dead, add remnants
+    if (affected > 0) {
         m_platforms.erase(
             std::remove_if(m_platforms.begin(), m_platforms.end(),
                             [](const Platform& p) { return !p.alive; }),
             m_platforms.end());
         for (auto& np : newPlatforms) m_platforms.push_back(np);
     }
-}
 
-int Arena::destroyPlatformsInRadius(Physics& physics, float ex, float ey, float radius) {
-    // Nuke-style: just deal massive damage
-    damagePlatformsInRadius(physics, ex, ey, radius, 9999.0f);
-    return 1;
+    return affected;
 }
 
 // ============================================================
@@ -368,42 +397,14 @@ void Arena::draw(sf::RenderTarget& target) const {
         sf::RectangleShape rect({w, h});
         rect.setPosition(toScreen(p.cx - p.halfWidth, p.cy + p.halfHeight));
 
-        sf::Color fill = fillColorForType(p.type);
-        sf::Color outline = outlineColorForType(p.type);
-
-        // Darken damaged platforms
-        float hpRatio = p.health / p.maxHealth;
-        if (hpRatio < 1.0f) {
-            float darken = 0.4f + 0.6f * hpRatio;
-            fill.r = static_cast<uint8_t>(fill.r * darken);
-            fill.g = static_cast<uint8_t>(fill.g * darken);
-            fill.b = static_cast<uint8_t>(fill.b * darken);
-        }
-
-        rect.setFillColor(fill);
-        rect.setOutlineColor(outline);
+        rect.setFillColor(fillColorForType(p.type));
+        rect.setOutlineColor(outlineColorForType(p.type));
         rect.setOutlineThickness(1.0f);
         target.draw(rect);
 
-        // Damage cracks for platforms below 50% HP
-        if (hpRatio < 0.5f) {
-            sf::Vector2f tl = toScreen(p.cx - p.halfWidth, p.cy + p.halfHeight);
-            int cracks = static_cast<int>((1.0f - hpRatio) * 4) + 1;
-            for (int c = 0; c < cracks; c++) {
-                float frac = static_cast<float>(c + 1) / static_cast<float>(cracks + 1);
-                float cx1 = tl.x + frac * w;
-                sf::VertexArray crack(sf::PrimitiveType::LineStrip, 3);
-                crack[0] = sf::Vertex{{cx1, tl.y}, sf::Color(30, 30, 30, 150)};
-                crack[1] = sf::Vertex{{cx1 + 3.0f, tl.y + h * 0.5f}, sf::Color(30, 30, 30, 120)};
-                crack[2] = sf::Vertex{{cx1 - 2.0f, tl.y + h}, sf::Color(30, 30, 30, 80)};
-                target.draw(crack);
-            }
-        }
-
-        // Texture details based on type
+        // Texture details
         sf::Vector2f tl = toScreen(p.cx - p.halfWidth, p.cy + p.halfHeight);
         if (p.type == PlatformType::Brick && w > 10.0f && h > 6.0f) {
-            // Brick pattern: horizontal lines
             for (float by = 6.0f; by < h; by += 6.0f) {
                 sf::VertexArray line(sf::PrimitiveType::Lines, 2);
                 line[0] = sf::Vertex{{tl.x + 1.0f, tl.y + by}, sf::Color(100, 35, 30, 80)};
@@ -411,7 +412,6 @@ void Arena::draw(sf::RenderTarget& target) const {
                 target.draw(line);
             }
         } else if (p.type == PlatformType::Wood && w > 8.0f) {
-            // Wood grain: horizontal lines
             for (float wy = 4.0f; wy < h; wy += 5.0f) {
                 sf::VertexArray line(sf::PrimitiveType::Lines, 2);
                 line[0] = sf::Vertex{{tl.x + 2.0f, tl.y + wy}, sf::Color(80, 55, 25, 60)};
@@ -419,7 +419,6 @@ void Arena::draw(sf::RenderTarget& target) const {
                 target.draw(line);
             }
         } else if (p.type == PlatformType::Metal && w > 8.0f) {
-            // Rivet dots
             for (float rx = 6.0f; rx < w; rx += 12.0f) {
                 sf::CircleShape rivet(1.5f);
                 rivet.setOrigin({1.5f, 1.5f});

@@ -582,12 +582,12 @@ void Game::handleMeleeAttack(StickFigure& attacker) {
         }
     }
 
-    // Environmental damage from melee — chip terrain in front of attacker
+    // Worms-style terrain carving from melee — small chip in front of attacker
     float envR = weapon.envDamageRadius;
-    if (envR <= 0.0f) envR = weapon.damage * 0.02f; // auto: scale from damage
+    if (envR <= 0.0f) envR = weapon.damage * 0.015f; // small carve radius
     float hitX = ap.x + dir * weapon.range * 0.6f;
     float hitY = ap.y;
-    m_arena.damagePlatformsInRadius(m_physics, hitX, hitY, envR, weapon.damage * 0.3f);
+    m_arena.carveCircle(m_physics, hitX, hitY, envR);
 }
 
 void Game::spawnProjectile(StickFigure& shooter) {
@@ -680,11 +680,10 @@ void Game::updateProjectiles(float dt) {
         bool shouldDetonate = contactDetonation || (expired && isExplosive);
 
         if (expired && !isExplosive) {
-            // Small env damage where bullet lands
+            // Small carve where bullet lands
             float envR = proj.weapon.envDamageRadius;
-            if (envR <= 0.0f) envR = proj.weapon.damage * 0.02f;
-            m_arena.damagePlatformsInRadius(m_physics, pp.x, pp.y, envR,
-                                            proj.weapon.damage * 0.2f);
+            if (envR <= 0.0f) envR = proj.weapon.damage * 0.015f;
+            m_arena.carveCircle(m_physics, pp.x, pp.y, envR);
             proj.alive = false;
             continue;
         }
@@ -719,11 +718,10 @@ void Game::updateProjectiles(float dt) {
                 }
 
                 if (!isExplosive) {
-                    // Projectile impact env damage
+                    // Carve terrain at impact point
                     float envR = proj.weapon.envDamageRadius;
-                    if (envR <= 0.0f) envR = proj.weapon.damage * 0.03f;
-                    m_arena.damagePlatformsInRadius(m_physics, pp.x, pp.y, envR,
-                                                    proj.weapon.damage * 0.4f);
+                    if (envR <= 0.0f) envR = proj.weapon.damage * 0.02f;
+                    m_arena.carveCircle(m_physics, pp.x, pp.y, envR);
                     proj.alive = false;
                     break;
                 }
@@ -754,14 +752,11 @@ void Game::updateProjectiles(float dt) {
                 }
             }
 
-            // Destroy platforms if this weapon has that property
+            // Carve terrain — nuke uses full explosion radius, regular explosives a bit less
             if (proj.weapon.destroysPlatforms) {
-                m_arena.destroyPlatformsInRadius(m_physics, pp.x, pp.y, proj.weapon.explosionRadius);
+                m_arena.carveCircle(m_physics, pp.x, pp.y, proj.weapon.explosionRadius);
             } else {
-                // Regular explosives still damage terrain
-                float envR = proj.weapon.explosionRadius * 0.6f;
-                m_arena.damagePlatformsInRadius(m_physics, pp.x, pp.y, envR,
-                                                proj.weapon.damage * 0.8f);
+                m_arena.carveCircle(m_physics, pp.x, pp.y, proj.weapon.explosionRadius * 0.6f);
             }
 
             // Spawn visual explosion effect
