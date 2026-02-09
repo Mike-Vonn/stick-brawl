@@ -266,6 +266,7 @@ void StickFigure::draw(sf::RenderTarget& target) const {
         case CharacterType::Cobra:     drawCobra(target); break;
         case CharacterType::Unicorn:   drawUnicorn(target); break;
         case CharacterType::Crocodile: drawCrocodile(target); break;
+        case CharacterType::StickLady: drawStickLady(target); break;
         default:                       drawStick(target); break;
     }
 
@@ -968,12 +969,231 @@ void StickFigure::drawCrocodile(sf::RenderTarget& target) const {
     }
 }
 
+void StickFigure::drawStickLady(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    float dir = static_cast<float>(m_facingDir);
+    float t = m_animTime;
+
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    b2Vec2 hp = b2Body_GetPosition(m_head);
+    sf::Vector2f headSc = toScreen(hp);
+    sf::Vector2f torsoSc = toScreen(tp);
+
+    b2Vec2 vel = b2Body_GetLinearVelocity(m_torso);
+    float speed = std::sqrt(vel.x * vel.x);
+
+    // --- Flowing hair ---
+    // Multiple strands from back of head, flowing opposite to facing direction
+    constexpr int hairStrands = 8;
+    float hairLen = 22.0f;
+    for (int i = 0; i < hairStrands; i++) {
+        float frac = static_cast<float>(i) / static_cast<float>(hairStrands - 1);
+        // Attach points around back half of head
+        float attachAngle = (0.6f + frac * 1.8f); // radians, back of head arc
+        float ax = headSc.x - dir * std::cos(attachAngle) * m_config.headRadius * PPM * 0.8f;
+        float ay = headSc.y - std::sin(attachAngle) * m_config.headRadius * PPM * 0.4f;
+
+        sf::VertexArray strand(sf::PrimitiveType::LineStrip, 6);
+        for (int s = 0; s < 6; s++) {
+            float sf2 = static_cast<float>(s) / 5.0f;
+            float wave = std::sin(t * 3.0f + frac * 2.0f + sf2 * 4.0f) * (3.0f + speed * 0.5f);
+            float windPush = -dir * sf2 * (4.0f + speed * 1.5f); // hair blows back
+            float sx = ax + windPush + wave * 0.3f;
+            float sy = ay + sf2 * hairLen + std::sin(t * 2.0f + frac) * 2.0f * sf2;
+            uint8_t alpha = static_cast<uint8_t>(255 * (1.0f - sf2 * 0.3f));
+            strand[s] = sf::Vertex{{sx, sy}, sf::Color(dc.r, dc.g, dc.b, alpha)};
+        }
+        target.draw(strand);
+    }
+
+    // --- Head (circle, same as stick but filled) ---
+    float headR = m_config.headRadius * PPM;
+    sf::CircleShape headShape(headR);
+    headShape.setOrigin({headR, headR});
+    headShape.setPosition(headSc);
+    headShape.setFillColor(sf::Color::Transparent);
+    headShape.setOutlineColor(dc);
+    headShape.setOutlineThickness(2.0f);
+    target.draw(headShape);
+
+    // --- Eyelashes ---
+    float eyeX = headSc.x + dir * headR * 0.4f;
+    float eyeY = headSc.y - headR * 0.15f;
+    // Eye dot
+    sf::CircleShape eye(2.0f);
+    eye.setOrigin({2.0f, 2.0f});
+    eye.setPosition({eyeX, eyeY});
+    eye.setFillColor(dc);
+    target.draw(eye);
+    // Three eyelash lines
+    for (int i = 0; i < 3; i++) {
+        float angle = -0.5f + static_cast<float>(i) * 0.5f; // fan out upward
+        float lashLen = 4.0f + static_cast<float>(i == 1) * 2.0f; // middle is longest
+        sf::VertexArray lash(sf::PrimitiveType::Lines, 2);
+        lash[0] = sf::Vertex{{eyeX, eyeY - 2.0f}, dc};
+        lash[1] = sf::Vertex{{eyeX + std::sin(angle) * lashLen * dir,
+                               eyeY - 2.0f - std::cos(angle) * lashLen}, dc};
+        target.draw(lash);
+    }
+
+    // --- Body line (torso) ---
+    b2Vec2 tTop = {tp.x, tp.y + m_config.bodyHeight / 4.0f};
+    b2Vec2 tBot = {tp.x, tp.y - m_config.bodyHeight / 4.0f};
+    auto drawLine = [&](b2Vec2 s, b2Vec2 e) {
+        sf::VertexArray line(sf::PrimitiveType::Lines, 2);
+        line[0] = sf::Vertex{toScreen(s), dc};
+        line[1] = sf::Vertex{toScreen(e), dc};
+        target.draw(line);
+    };
+    drawLine(tTop, tBot);
+
+    // --- Arms ---
+    b2Vec2 shoulder = {tp.x, tp.y + m_config.bodyHeight / 6.0f};
+    drawLine(shoulder, b2Body_GetPosition(m_leftArm));
+    drawLine(shoulder, b2Body_GetPosition(m_rightArm));
+
+    // --- Triangle skirt ---
+    sf::Vector2f waist = toScreen(tBot);
+    float skirtWidth = 18.0f;
+    float skirtLen = 16.0f;
+    // Slight sway animation
+    float sway = speed > 1.0f ? std::sin(t * 6.0f) * 3.0f : std::sin(t * 1.5f) * 1.0f;
+
+    sf::ConvexShape skirt(4);
+    skirt.setPoint(0, {waist.x - 3.0f, waist.y - 2.0f});
+    skirt.setPoint(1, {waist.x + 3.0f, waist.y - 2.0f});
+    skirt.setPoint(2, {waist.x + skirtWidth + sway, waist.y + skirtLen});
+    skirt.setPoint(3, {waist.x - skirtWidth + sway, waist.y + skirtLen});
+    // Slightly lighter fill
+    sf::Color skirtColor(
+        static_cast<uint8_t>(std::min(255, dc.r + 30)),
+        static_cast<uint8_t>(std::min(255, dc.g + 10)),
+        static_cast<uint8_t>(std::min(255, dc.b + 40)));
+    skirt.setFillColor(skirtColor);
+    skirt.setOutlineColor(dc);
+    skirt.setOutlineThickness(1.0f);
+    target.draw(skirt);
+
+    // Skirt hem detail line
+    sf::VertexArray hem(sf::PrimitiveType::Lines, 2);
+    hem[0] = sf::Vertex{{waist.x - skirtWidth * 0.8f + sway, waist.y + skirtLen - 2.0f}, dc};
+    hem[1] = sf::Vertex{{waist.x + skirtWidth * 0.8f + sway, waist.y + skirtLen - 2.0f}, dc};
+    target.draw(hem);
+
+    // --- Legs (below skirt) ---
+    sf::Vector2f leftLegSc = toScreen(b2Body_GetPosition(m_leftLeg));
+    sf::Vector2f rightLegSc = toScreen(b2Body_GetPosition(m_rightLeg));
+    // Legs start at bottom of skirt
+    float legStartY = waist.y + skirtLen;
+    {
+        sf::VertexArray leg(sf::PrimitiveType::Lines, 2);
+        leg[0] = sf::Vertex{{leftLegSc.x, legStartY}, dc};
+        leg[1] = sf::Vertex{leftLegSc, dc};
+        target.draw(leg);
+    }
+    {
+        sf::VertexArray leg(sf::PrimitiveType::Lines, 2);
+        leg[0] = sf::Vertex{{rightLegSc.x, legStartY}, dc};
+        leg[1] = sf::Vertex{rightLegSc, dc};
+        target.draw(leg);
+    }
+
+    // --- Purse (hangs from arm, swings during attack) ---
+    float purseSwing = 0.0f;
+    if (m_attackAnimTimer > 0.0f) {
+        float prog = m_attackAnimTimer / 0.2f;
+        purseSwing = std::sin(prog * 3.14159f * 2.0f) * 30.0f; // wild swing
+    }
+    // Purse hangs from the forward arm
+    b2Vec2 armPos = (dir > 0) ? b2Body_GetPosition(m_rightArm) : b2Body_GetPosition(m_leftArm);
+    sf::Vector2f armSc = toScreen(armPos);
+    float purseX = armSc.x + dir * 6.0f + std::sin(t * 2.0f + purseSwing * 0.05f) * 2.0f;
+    float purseY = armSc.y + 4.0f;
+
+    // Strap
+    sf::VertexArray strap(sf::PrimitiveType::Lines, 2);
+    strap[0] = sf::Vertex{armSc, dc};
+    strap[1] = sf::Vertex{{purseX, purseY}, dc};
+    target.draw(strap);
+
+    // Purse body (small rectangle with flap)
+    float purseAngle = purseSwing + std::sin(t * 2.0f) * 5.0f;
+    sf::RectangleShape purseBody({10.0f, 8.0f});
+    purseBody.setOrigin({5.0f, 0.0f});
+    purseBody.setPosition({purseX, purseY});
+    purseBody.setRotation(sf::degrees(purseAngle));
+    // Purse is a contrasting color
+    sf::Color purseColor(
+        static_cast<uint8_t>(std::min(255, 255 - dc.r / 2)),
+        static_cast<uint8_t>(std::min(255, dc.g / 3)),
+        static_cast<uint8_t>(std::min(255, dc.b / 2 + 80)));
+    purseBody.setFillColor(purseColor);
+    purseBody.setOutlineColor(sf::Color(purseColor.r / 2, purseColor.g / 2, purseColor.b / 2));
+    purseBody.setOutlineThickness(1.0f);
+    target.draw(purseBody);
+
+    // Clasp
+    sf::CircleShape clasp(1.5f);
+    clasp.setOrigin({1.5f, 1.5f});
+    clasp.setPosition({purseX, purseY + 2.0f});
+    clasp.setFillColor(sf::Color(200, 180, 100));
+    target.draw(clasp);
+}
+
 void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
     sf::Vector2f sp = toScreen(getPosition());
     float dir = static_cast<float>(m_facingDir);
     float prog = 1.0f - (m_attackAnimTimer / 0.2f);
 
-    if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Crocodile) {
+    if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::StickLady) {
+        // Purse swing attack — wide arc with purse trail
+        float swingAngle = -120.0f + 240.0f * prog; // big swing arc
+        float swingRad = swingAngle * 3.14159f / 180.0f;
+        float swingR = m_weapon.range * PPM * 0.5f;
+        float purseX = sp.x + dir * std::cos(swingRad) * swingR;
+        float purseY = sp.y - 5.0f + std::sin(swingRad) * swingR;
+
+        // Trail particles
+        int trailCount = static_cast<int>(prog * 8);
+        for (int i = 0; i < trailCount; i++) {
+            float trailProg = prog - static_cast<float>(i) * 0.04f;
+            if (trailProg < 0.0f) continue;
+            float ta = -120.0f + 240.0f * trailProg;
+            float tr = ta * 3.14159f / 180.0f;
+            float tx = sp.x + dir * std::cos(tr) * swingR;
+            float ty = sp.y - 5.0f + std::sin(tr) * swingR;
+            float sz = 2.0f * (1.0f - static_cast<float>(i) * 0.1f);
+            sf::CircleShape trail(sz);
+            trail.setOrigin({sz, sz});
+            trail.setPosition({tx, ty});
+            uint8_t alpha = static_cast<uint8_t>(180 * (1.0f - static_cast<float>(i) * 0.12f));
+            trail.setFillColor(sf::Color(255, 180, 220, alpha));
+            target.draw(trail);
+        }
+
+        // Purse at current position
+        sf::RectangleShape purseHit({12.0f, 10.0f});
+        purseHit.setOrigin({6.0f, 5.0f});
+        purseHit.setPosition({purseX, purseY});
+        purseHit.setRotation(sf::degrees(swingAngle));
+        purseHit.setFillColor(sf::Color(200, 80, 150, static_cast<uint8_t>(220 * (1.0f - prog))));
+        purseHit.setOutlineColor(sf::Color(150, 50, 100, static_cast<uint8_t>(200 * (1.0f - prog))));
+        purseHit.setOutlineThickness(1.0f);
+        target.draw(purseHit);
+
+        // Impact star at end of swing
+        if (prog > 0.6f && prog < 0.9f) {
+            float starSz = 8.0f * (1.0f - (prog - 0.6f) / 0.3f);
+            for (int s = 0; s < 4; s++) {
+                float a = static_cast<float>(s) * 0.785f + m_animTime * 3.0f;
+                sf::VertexArray ray(sf::PrimitiveType::Lines, 2);
+                ray[0] = sf::Vertex{{purseX, purseY}, sf::Color(255, 255, 100, 200)};
+                ray[1] = sf::Vertex{{purseX + std::cos(a) * starSz,
+                                      purseY + std::sin(a) * starSz}, sf::Color(255, 255, 100, 60)};
+                target.draw(ray);
+            }
+        }
+    } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Crocodile) {
         // Jaw snap effect — closing jaws with impact lines
         float snapProg = prog; // 0 = start, 1 = fully snapped
         float jawAngle = (1.0f - std::abs(snapProg * 2.0f - 1.0f)) * 25.0f; // opens then snaps

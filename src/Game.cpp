@@ -40,6 +40,7 @@ static CharacterType indexToType(int idx) {
         case 2: return CharacterType::Cobra;
         case 3: return CharacterType::Unicorn;
         case 4: return CharacterType::Crocodile;
+        case 5: return CharacterType::StickLady;
         default: return CharacterType::Stick;
     }
 }
@@ -431,6 +432,83 @@ void Game::renderCharSelect() {
                 }
                 break;
             }
+            case CharacterType::StickLady: {
+                // Head
+                sf::CircleShape slHead(12.0f);
+                slHead.setOrigin({12.0f, 12.0f});
+                slHead.setPosition({cx, previewY - 50.0f});
+                slHead.setFillColor(sf::Color::Transparent);
+                slHead.setOutlineColor(pc); slHead.setOutlineThickness(2.0f);
+                win.draw(slHead);
+                // Hair strands
+                for (int hi = 0; hi < 5; hi++) {
+                    float hfrac = static_cast<float>(hi) / 4.0f;
+                    float hx = cx - 6.0f + hfrac * 3.0f;
+                    float wave = std::sin(m_selectAnimTimer * 2.0f + hfrac * 2.0f) * 3.0f;
+                    sf::VertexArray hair(sf::PrimitiveType::LineStrip, 3);
+                    hair[0] = sf::Vertex{{hx, previewY - 52.0f + hfrac * 4.0f}, pc};
+                    hair[1] = sf::Vertex{{hx - 8.0f + wave, previewY - 40.0f}, pc};
+                    hair[2] = sf::Vertex{{hx - 10.0f + wave, previewY - 28.0f}, sf::Color(pc.r, pc.g, pc.b, 150)};
+                    win.draw(hair);
+                }
+                // Eyelashes
+                sf::CircleShape slEye(1.5f);
+                slEye.setOrigin({1.5f, 1.5f});
+                slEye.setPosition({cx + 4.0f, previewY - 51.0f});
+                slEye.setFillColor(pc);
+                win.draw(slEye);
+                for (int li = 0; li < 3; li++) {
+                    float la = -0.4f + static_cast<float>(li) * 0.4f;
+                    sf::VertexArray lash(sf::PrimitiveType::Lines, 2);
+                    lash[0] = sf::Vertex{{cx + 4.0f, previewY - 53.0f}, pc};
+                    lash[1] = sf::Vertex{{cx + 4.0f + std::sin(la) * 4.0f,
+                                           previewY - 53.0f - std::cos(la) * 4.0f}, pc};
+                    win.draw(lash);
+                }
+                // Body
+                sf::VertexArray slBody(sf::PrimitiveType::Lines, 2);
+                slBody[0] = sf::Vertex{{cx, previewY - 38.0f}, pc};
+                slBody[1] = sf::Vertex{{cx, previewY - 5.0f}, pc};
+                win.draw(slBody);
+                // Arms
+                for (float s : {-1.0f, 1.0f}) {
+                    sf::VertexArray arm(sf::PrimitiveType::Lines, 2);
+                    arm[0] = sf::Vertex{{cx, previewY - 28.0f}, pc};
+                    arm[1] = sf::Vertex{{cx + s * 18.0f, previewY - 15.0f}, pc};
+                    win.draw(arm);
+                }
+                // Triangle skirt
+                sf::ConvexShape slSkirt(3);
+                slSkirt.setPoint(0, {cx - 4.0f, previewY - 6.0f});
+                slSkirt.setPoint(1, {cx + 4.0f, previewY - 6.0f});
+                float skirtSway = std::sin(m_selectAnimTimer * 1.5f) * 2.0f;
+                slSkirt.setPoint(2, {cx + skirtSway, previewY + 14.0f});
+                sf::Color skirtC(
+                    static_cast<uint8_t>(std::min(255, pc.r + 30)),
+                    static_cast<uint8_t>(std::min(255, pc.g + 10)),
+                    static_cast<uint8_t>(std::min(255, pc.b + 40)));
+                slSkirt.setFillColor(skirtC);
+                slSkirt.setOutlineColor(pc); slSkirt.setOutlineThickness(1.0f);
+                win.draw(slSkirt);
+                // Legs below skirt
+                for (float s : {-1.0f, 1.0f}) {
+                    sf::VertexArray leg(sf::PrimitiveType::Lines, 2);
+                    leg[0] = sf::Vertex{{cx + s * 4.0f, previewY + 14.0f}, pc};
+                    leg[1] = sf::Vertex{{cx + s * 10.0f, previewY + 28.0f}, pc};
+                    win.draw(leg);
+                }
+                // Purse
+                sf::RectangleShape slPurse({8.0f, 6.0f});
+                slPurse.setOrigin({4.0f, 0.0f});
+                float purseSwing2 = std::sin(m_selectAnimTimer * 3.0f) * 8.0f;
+                slPurse.setPosition({cx + 18.0f, previewY - 13.0f});
+                slPurse.setRotation(sf::degrees(purseSwing2));
+                slPurse.setFillColor(sf::Color(200, 80, 150));
+                slPurse.setOutlineColor(sf::Color(150, 50, 100));
+                slPurse.setOutlineThickness(1.0f);
+                win.draw(slPurse);
+                break;
+            }
         }
 
         // Ready indicator
@@ -528,6 +606,9 @@ void Game::startGame() {
         } else if (ct == CharacterType::Crocodile) {
             auto* jaw = m_weaponFactory.getWeapon("Jaw Snap");
             if (jaw) p->equipWeapon(*jaw);
+        } else if (ct == CharacterType::StickLady) {
+            auto* purse = m_weaponFactory.getWeapon("Purse Swing");
+            if (purse) p->equipWeapon(*purse);
         }
 
         m_players.push_back(std::move(p));
@@ -902,7 +983,8 @@ void Game::updateWeaponSpawns(float dt) {
         do {
             pickup.weapon = m_weaponFactory.getRandomWeapon();
         } while (pickup.weapon.name == "Fists" || pickup.weapon.name == "Poison Spit"
-                 || pickup.weapon.name == "Horn Blast" || pickup.weapon.name == "Jaw Snap");
+                 || pickup.weapon.name == "Horn Blast" || pickup.weapon.name == "Jaw Snap"
+                 || pickup.weapon.name == "Purse Swing");
         pickup.alive = true;
         pickup.bobTimer = 0.0f;
         m_pickups.push_back(pickup);
