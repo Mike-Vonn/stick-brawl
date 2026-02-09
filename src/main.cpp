@@ -11,7 +11,7 @@ int main() {
     std::cout << "  Player 5: Z/C move, X jump, V attack, B/N aim\n";
     std::cout << "\n";
     std::cout << "  Character Select: LEFT/RIGHT to pick character, ATK to ready\n";
-    std::cout << "  TAB to cycle levels | ENTER/SPACE to start\n";
+    std::cout << "  TAB to cycle levels | ` to toggle wrap-around | ENTER/SPACE to start\n";
     std::cout << "  Walk over glowing boxes to pick up weapons!\n";
     std::cout << "  ESC to quit, R to restart round, Backspace to return to select\n\n";
 

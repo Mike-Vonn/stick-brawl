@@ -71,6 +71,11 @@ void Game::processCharSelectEvents() {
             if (k->code == sf::Keyboard::Key::Tab) {
                 m_selectedLevel = (m_selectedLevel + 1) % Arena::getLevelCount();
             }
+
+            // Grave/tilde toggles wrap-around
+            if (k->code == sf::Keyboard::Key::Grave) {
+                m_wrapAround = !m_wrapAround;
+            }
         }
     }
 }
@@ -460,6 +465,14 @@ void Game::renderCharSelect() {
         levelText.setPosition({(SCREEN_WIDTH - lb.size.x) / 2.0f, 56.0f});
         win.draw(levelText);
 
+        // Wrap-around toggle
+        std::string wrapStr = "Wrap-Around: " + std::string(m_wrapAround ? "ON" : "OFF") + "  [`]";
+        sf::Text wrapText(*font, wrapStr, 16);
+        wrapText.setFillColor(m_wrapAround ? sf::Color(100, 255, 180) : sf::Color(150, 150, 150));
+        sf::FloatRect wb = wrapText.getLocalBounds();
+        wrapText.setPosition({(SCREEN_WIDTH - wb.size.x) / 2.0f, 78.0f});
+        win.draw(wrapText);
+
         if (allPlayersReady()) {
             float pulse = std::sin(m_selectAnimTimer * 4.0f) * 0.3f + 0.7f;
             sf::Text startText(*font, "ENTER / SPACE to START", 22);
@@ -735,6 +748,20 @@ void Game::updateProjectiles(float dt) {
         proj.lifetime -= dt;
 
         b2Vec2 pp = b2Body_GetPosition(proj.bodyId);
+
+        // Wrap projectiles around if enabled
+        if (m_wrapAround) {
+            float worldHalfW = SCREEN_WIDTH / PPM / 2.0f + 2.0f;
+            float worldTop   = SCREEN_HEIGHT / PPM / 2.0f + 2.0f;
+            float worldBot   = -20.0f;
+            bool wrapped = false;
+            if (pp.x < -worldHalfW)  { pp.x = worldHalfW - 1.0f; wrapped = true; }
+            if (pp.x > worldHalfW)   { pp.x = -worldHalfW + 1.0f; wrapped = true; }
+            if (pp.y < worldBot)     { pp.y = worldTop; wrapped = true; }
+            if (wrapped) {
+                b2Body_SetTransform(proj.bodyId, pp, b2Body_GetRotation(proj.bodyId));
+            }
+        }
         bool isExplosive = (proj.weapon.type == WeaponType::Explosive);
         float hitR = isExplosive ? proj.weapon.explosionRadius : 0.6f;
 
@@ -914,15 +941,37 @@ void Game::updateWeaponPickups(float dt) {
 void Game::checkFallDeath() {
     const auto& rules = m_rulesEngine.getRules();
     const auto& spawns = m_arena.getSpawnPoints();
+
+    // World bounds in meters (screen edges + margin)
+    float worldHalfW = SCREEN_WIDTH / PPM / 2.0f + 2.0f;  // ~23m
+    float worldTop   = SCREEN_HEIGHT / PPM / 2.0f + 2.0f;  // ~14m
+    float worldBot   = rules.fallDeathY;                     // -20m
+
     for (auto& player : m_players) {
         if (!player->isAlive() || player->isWaitingToRespawn()) continue;
-        if (player->getPosition().y < rules.fallDeathY) {
-            player->takeDamage(9999.0f, 0.0f, 0.0f);
-            int lives = player->getLives() - 1;
-            player->setLives(lives);
-            if (lives > 0) {
-                size_t idx = static_cast<size_t>(player->getPlayerIndex());
-                player->startRespawnTimer(rules.respawnDelay, spawns[idx].x, spawns[idx].y);
+        b2Vec2 pos = player->getPosition();
+
+        if (m_wrapAround) {
+            // Vertical wrap: fell below bottom → appear at top
+            if (pos.y < worldBot) {
+                player->teleportTo(pos.x, worldTop);
+            }
+            // Horizontal wrap: off left/right → appear on opposite side
+            if (pos.x < -worldHalfW) {
+                player->teleportTo(worldHalfW - 1.0f, pos.y);
+            } else if (pos.x > worldHalfW) {
+                player->teleportTo(-worldHalfW + 1.0f, pos.y);
+            }
+        } else {
+            // Normal mode: fall = death
+            if (pos.y < worldBot) {
+                player->takeDamage(9999.0f, 0.0f, 0.0f);
+                int lives = player->getLives() - 1;
+                player->setLives(lives);
+                if (lives > 0) {
+                    size_t idx = static_cast<size_t>(player->getPlayerIndex());
+                    player->startRespawnTimer(rules.respawnDelay, spawns[idx].x, spawns[idx].y);
+                }
             }
         }
     }

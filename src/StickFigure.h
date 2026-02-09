@@ -59,6 +59,7 @@ public:
     void takeDamage(float amount, float knockbackX, float knockbackY);
     void applyPoison(float dps, float duration);
     void respawn(float x, float y);
+    void teleportTo(float x, float y); // preserves velocity (for wrap-around)
     void startRespawnTimer(float delay, float x, float y);
     bool isWaitingToRespawn() const { return m_waitingToRespawn; }
     void update(float dt);

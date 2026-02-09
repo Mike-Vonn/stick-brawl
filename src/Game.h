@@ -99,6 +99,7 @@ private:
     std::array<PlayerSelectState, MAX_PLAYERS> m_selectState;
     float m_selectAnimTimer = 0.0f;
     int   m_selectedLevel = 0;
+    bool  m_wrapAround = false;  // fall-through wrap-around mode
 
     static constexpr sf::Color m_playerColors[MAX_PLAYERS] = {
         sf::Color(100, 180, 255),  // Blue

@@ -196,6 +196,28 @@ void StickFigure::respawn(float x, float y) {
     m_currentAmmo = -1;
 }
 
+void StickFigure::teleportTo(float x, float y) {
+    // Compute offset from current position to target
+    b2Vec2 curPos = b2Body_GetPosition(m_torso);
+    float dx = x - curPos.x;
+    float dy = y - curPos.y;
+
+    // Teleport each body by the same offset, preserving velocity
+    auto shift = [&](b2BodyId body) {
+        b2Vec2 p = b2Body_GetPosition(body);
+        b2Rot r = b2Body_GetRotation(body);
+        b2Body_SetTransform(body, {p.x + dx, p.y + dy}, r);
+        // velocity is preserved automatically
+    };
+
+    shift(m_torso);
+    shift(m_head);
+    shift(m_leftArm);
+    shift(m_rightArm);
+    shift(m_leftLeg);
+    shift(m_rightLeg);
+}
+
 void StickFigure::update(float dt) {
     if (m_attackCooldown > 0.0f) m_attackCooldown -= dt;
     if (m_attackAnimTimer > 0.0f) m_attackAnimTimer -= dt;
