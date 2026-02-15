@@ -145,7 +145,16 @@ void StickFigure::takeDamage(float amount, float knockbackX, float knockbackY) {
     m_health -= amount;
     if (m_health < 0.0f) m_health = 0.0f;
     m_damageFlashTimer = 0.15f;
+    m_lastKnockbackX = knockbackX;
+    m_lastKnockbackY = knockbackY;
     b2Body_ApplyLinearImpulseToCenter(m_torso, {knockbackX, knockbackY}, true);
+}
+
+void StickFigure::takeDamage(float amount, float knockbackX, float knockbackY,
+                              const std::string& weaponName, WeaponType weaponType) {
+    m_lastDamageWeapon = weaponName;
+    m_lastDamageWeaponType = weaponType;
+    takeDamage(amount, knockbackX, knockbackY);
 }
 
 void StickFigure::applyPoison(float dps, float duration) {

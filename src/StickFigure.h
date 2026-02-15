@@ -59,8 +59,16 @@ public:
     int getAmmo() const { return m_currentAmmo; }
 
     void takeDamage(float amount, float knockbackX, float knockbackY);
+    void takeDamage(float amount, float knockbackX, float knockbackY,
+                    const std::string& weaponName, WeaponType weaponType);
     void applyPoison(float dps, float duration);
     void respawn(float x, float y);
+
+    // Last weapon that dealt damage (for death animation selection)
+    const std::string& getLastDamageWeapon() const { return m_lastDamageWeapon; }
+    WeaponType getLastDamageWeaponType() const { return m_lastDamageWeaponType; }
+    float getLastKnockbackX() const { return m_lastKnockbackX; }
+    float getLastKnockbackY() const { return m_lastKnockbackY; }
     void teleportTo(float x, float y); // preserves velocity (for wrap-around)
     void startRespawnTimer(float delay, float x, float y);
     bool isWaitingToRespawn() const { return m_waitingToRespawn; }
@@ -125,6 +133,12 @@ private:
 
     WeaponData m_weapon;
     int        m_currentAmmo = -1;
+
+    // Last weapon that dealt the killing blow (for death animation selection)
+    std::string m_lastDamageWeapon;
+    WeaponType  m_lastDamageWeaponType = WeaponType::Melee;
+    float       m_lastKnockbackX = 0.0f;
+    float       m_lastKnockbackY = 0.0f;
 
     float m_moveSpeed = 8.0f;
     float m_jumpForce = 12.0f;

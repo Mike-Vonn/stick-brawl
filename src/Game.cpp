@@ -619,6 +619,10 @@ void Game::startGame() {
     m_weaponSpawnTimer = rules.weaponSpawnInterval;
     m_state = GameState::Playing;
 
+    // Initialize death tracking
+    m_wasAlive.clear();
+    m_wasAlive.resize(m_players.size(), true);
+
     std::cout << "Game started with " << m_players.size() << " players!\n";
 }
 
@@ -689,6 +693,9 @@ void Game::update(float dt) {
     updateProjectiles(dt);
     updateWeaponPickups(dt);
     checkFallDeath();
+    checkPlayerDeaths();
+    m_deathAnims.update(dt);
+    m_deathAnims.cleanup(m_physics);
     updateWeaponSpawns(dt);
     checkRoundEnd();
 }
@@ -743,7 +750,7 @@ void Game::handleMeleeAttack(StickFigure& attacker) {
             float dmg = weapon.damage * rules.damageMultiplier;
             float kbX = weapon.knockbackForce * dir * rules.knockbackMultiplier;
             float kbY = weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
-            target->takeDamage(dmg, kbX, kbY);
+            target->takeDamage(dmg, kbX, kbY, weapon.name, weapon.type);
         }
     }
 
@@ -882,7 +889,7 @@ void Game::updateProjectiles(float dt) {
 
             if (dist < checkR) {
                 if (proj.isPoison) {
-                    player->takeDamage(5.0f, 0.0f, 0.0f);
+                    player->takeDamage(5.0f, 0.0f, 0.0f, "Poison Spit", WeaponType::Projectile);
                     player->applyPoison(proj.poisonDps, proj.poisonDuration);
                 } else {
                     float dmg = proj.weapon.damage * rules.damageMultiplier;
@@ -893,7 +900,7 @@ void Game::updateProjectiles(float dt) {
                     float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
                     float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
                     float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
-                    player->takeDamage(dmg, kbX, kbY);
+                    player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type);
                 }
 
                 if (!isExplosive) {
@@ -926,7 +933,7 @@ void Game::updateProjectiles(float dt) {
                         float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
                         float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
                         float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
-                        player->takeDamage(dmg, kbX, kbY);
+                        player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type);
                     }
                 }
             }
@@ -1047,15 +1054,66 @@ void Game::checkFallDeath() {
         } else {
             // Normal mode: fall = death
             if (pos.y < worldBot) {
-                player->takeDamage(9999.0f, 0.0f, 0.0f);
-                int lives = player->getLives() - 1;
-                player->setLives(lives);
-                if (lives > 0) {
-                    size_t idx = static_cast<size_t>(player->getPlayerIndex());
-                    player->startRespawnTimer(rules.respawnDelay, spawns[idx].x, spawns[idx].y);
-                }
+                player->takeDamage(9999.0f, 0.0f, 0.0f, "Fall", WeaponType::Melee);
+                // Lives/respawn handled by checkPlayerDeaths()
             }
         }
+    }
+}
+
+DeathAnimType Game::getDeathAnimType(const StickFigure& player) const {
+    const std::string& weapon = player.getLastDamageWeapon();
+    WeaponType wtype = player.getLastDamageWeaponType();
+
+    // Katana and blade-type melee → dismemberment
+    if (weapon == "Katana" || weapon == "Jaw Snap")
+        return DeathAnimType::Dismember;
+
+    // Nuke → disintegrate
+    if (weapon == "Nuclear Hand Grenade")
+        return DeathAnimType::Disintegrate;
+
+    // Other explosives → explode into pieces
+    if (wtype == WeaponType::Explosive)
+        return DeathAnimType::Explode;
+
+    // Everything else (fists, guns, falls, poison, etc.) → collapse
+    return DeathAnimType::Collapse;
+}
+
+void Game::checkPlayerDeaths() {
+    const auto& rules = m_rulesEngine.getRules();
+    const auto& spawns = m_arena.getSpawnPoints();
+
+    for (size_t i = 0; i < m_players.size(); i++) {
+        auto& player = m_players[i];
+        bool aliveNow = player->isAlive();
+
+        // Detect death transition: was alive last frame, dead now
+        if (i < m_wasAlive.size() && m_wasAlive[i] && !aliveNow
+            && !player->isWaitingToRespawn()) {
+
+            b2Vec2 pos = player->getPosition();
+
+            // Don't spawn death animation for fall deaths (off screen)
+            if (player->getLastDamageWeapon() != "Fall") {
+                DeathAnimType animType = getDeathAnimType(*player);
+                m_deathAnims.spawnDeath(m_physics, animType,
+                    pos.x, pos.y, player->getColor(), player->getPlayerIndex(),
+                    player->getLastKnockbackX(), player->getLastKnockbackY());
+            }
+
+            // Handle lives/respawn
+            int lives = player->getLives() - 1;
+            player->setLives(lives);
+            if (lives > 0) {
+                size_t idx = static_cast<size_t>(player->getPlayerIndex());
+                player->startRespawnTimer(rules.respawnDelay, spawns[idx].x, spawns[idx].y);
+            }
+        }
+
+        if (i < m_wasAlive.size())
+            m_wasAlive[i] = aliveNow;
     }
 }
 
@@ -1104,6 +1162,9 @@ void Game::render() {
     }
 
     for (const auto& p : m_players) p->draw(m_renderer.getWindow());
+
+    // Draw death animations (gibs, blood, collapse effects)
+    m_deathAnims.draw(m_renderer.getWindow());
 
     for (const auto& proj : m_projectiles) {
         if (!proj.alive) continue;

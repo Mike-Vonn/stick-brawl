@@ -22,6 +22,7 @@ set(SOURCES
     src/RulesEngine.cpp
     src/HUD.cpp
     src/ContactListener.cpp
+    src/DeathAnimation.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

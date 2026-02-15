@@ -7,6 +7,7 @@
 #include "WeaponFactory.h"
 #include "RulesEngine.h"
 #include "HUD.h"
+#include "DeathAnimation.h"
 #include <vector>
 #include <memory>
 #include <array>
@@ -76,7 +77,10 @@ private:
     void checkFallDeath();
     void updateWeaponSpawns(float dt);
     void updateWeaponPickups(float dt);
+    void checkPlayerDeaths();
     void checkRoundEnd();
+
+    DeathAnimType getDeathAnimType(const StickFigure& player) const;
 
     GameState m_state = GameState::CharSelect;
     float     m_roundTimer = 0.0f;
@@ -94,6 +98,10 @@ private:
     std::vector<Projectile> m_projectiles;
     std::vector<WeaponPickup> m_pickups;
     std::vector<ExplosionEffect> m_explosions;
+    DeathAnimationSystem m_deathAnims;
+
+    // Track which players were alive last frame (to detect fresh deaths)
+    std::vector<bool> m_wasAlive;
 
     // Character select state
     std::array<PlayerSelectState, MAX_PLAYERS> m_selectState;
