@@ -1,0 +1,10 @@
+{
+    "name": "Jaguar Bite",
+    "type": "melee",
+    "damage": 25,
+    "knockback_force": 10.0,
+    "range": 2.0,
+    "attack_rate_seconds": 0.5,
+    "env_damage_radius": 0.3,
+    "description": "Powerful crushing bite. Jaguars have the strongest bite of any big cat."
+}

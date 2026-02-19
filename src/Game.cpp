@@ -36,11 +36,15 @@ bool Game::init() {
 static CharacterType indexToType(int idx) {
     switch (idx % CHARACTER_TYPE_COUNT) {
         case 0: return CharacterType::Stick;
-        case 1: return CharacterType::Cat;
-        case 2: return CharacterType::Cobra;
-        case 3: return CharacterType::Unicorn;
-        case 4: return CharacterType::Crocodile;
-        case 5: return CharacterType::StickLady;
+        case 1: return CharacterType::Lion;
+        case 2: return CharacterType::Tiger;
+        case 3: return CharacterType::Jaguar;
+        case 4: return CharacterType::Panther;
+        case 5: return CharacterType::Cheetah;
+        case 6: return CharacterType::Cobra;
+        case 7: return CharacterType::Unicorn;
+        case 8: return CharacterType::Crocodile;
+        case 9: return CharacterType::StickLady;
         default: return CharacterType::Stick;
     }
 }
@@ -101,20 +105,20 @@ void Game::updateCharSelect(float dt) {
         }
 
         if (!ps.ready) {
-            // Left/right to cycle character
-            static bool prevLeft[MAX_PLAYERS] = {};
-            static bool prevRight[MAX_PLAYERS] = {};
+            // Left/right to cycle character (edge-detect using per-frame comparison)
+            bool leftNow = pi.moveLeft;
+            bool rightNow = pi.moveRight;
 
-            if (pi.moveLeft && !prevLeft[i]) {
+            if (leftNow && !m_prevSelectLeft[i]) {
                 ps.charIndex--;
                 if (ps.charIndex < 0) ps.charIndex = CHARACTER_TYPE_COUNT - 1;
             }
-            if (pi.moveRight && !prevRight[i]) {
+            if (rightNow && !m_prevSelectRight[i]) {
                 ps.charIndex++;
                 if (ps.charIndex >= CHARACTER_TYPE_COUNT) ps.charIndex = 0;
             }
-            prevLeft[i] = pi.moveLeft;
-            prevRight[i] = pi.moveRight;
+            m_prevSelectLeft[i] = leftNow;
+            m_prevSelectRight[i] = rightNow;
 
             // Attack to confirm (ready up)
             if (pi.attackPressed) {
@@ -138,7 +142,7 @@ void Game::renderCharSelect() {
     m_renderer.clear(sf::Color(20, 15, 30));
     auto& win = m_renderer.getWindow();
 
-    // We need a font — reuse HUD's approach
+    // We need a font -- reuse HUD's approach
     // Try to load font inline (simple approach)
     static std::optional<sf::Font> font;
     static bool fontLoaded = false;
@@ -208,6 +212,16 @@ void Game::renderCharSelect() {
         nameText.setPosition({cx - nb.size.x / 2.0f, 130.0f});
         win.draw(nameText);
 
+        // Character blurb (stats hint for big cats)
+        const char* blurb = characterTypeBlurb(ct);
+        if (blurb[0] != '\0') {
+            sf::Text blurbText(*font, blurb, 11);
+            blurbText.setFillColor(sf::Color(180, 180, 130));
+            sf::FloatRect bb = blurbText.getLocalBounds();
+            blurbText.setPosition({cx - bb.size.x / 2.0f, 152.0f});
+            win.draw(blurbText);
+        }
+
         // Arrows (< and >) if not ready
         if (!ps.ready) {
             sf::Text leftArrow(*font, "<", 28);
@@ -221,7 +235,7 @@ void Game::renderCharSelect() {
             win.draw(rightArrow);
         }
 
-        // Character preview — draw a simple iconic representation
+        // Character preview -- draw a simple iconic representation
         float previewY = SCREEN_HEIGHT / 2.0f + 20.0f;
         sf::Color pc = m_playerColors[i];
 
@@ -250,8 +264,8 @@ void Game::renderCharSelect() {
                 }
                 break;
             }
-            case CharacterType::Cat: {
-                // Cat body
+            case CharacterType::Lion: {
+                // Lion body
                 sf::CircleShape catBody(18.0f);
                 catBody.setScale({1.2f, 0.8f});
                 catBody.setOrigin({18.0f, 18.0f});
@@ -266,13 +280,158 @@ void Game::renderCharSelect() {
                 catHead.setFillColor(pc);
                 catHead.setOutlineColor(sf::Color::Black); catHead.setOutlineThickness(1.0f);
                 win.draw(catHead);
-                // Ears
+                // Mane spikes
+                sf::Color maneC(std::min(255, pc.r + 40), std::min(255, (int)(pc.g * 0.7f + 50)), pc.b / 3);
+                for (int mi = 0; mi < 10; mi++) {
+                    float angle = static_cast<float>(mi) / 10.0f * 6.28f;
+                    sf::VertexArray spike(sf::PrimitiveType::Lines, 2);
+                    spike[0] = sf::Vertex{{cx + 16.0f + std::cos(angle) * 10.0f,
+                                            previewY - 14.0f + std::sin(angle) * 10.0f}, maneC};
+                    spike[1] = sf::Vertex{{cx + 16.0f + std::cos(angle) * 16.0f,
+                                            previewY - 14.0f + std::sin(angle) * 16.0f}, maneC};
+                    win.draw(spike);
+                }
+                // Round ears
+                for (float es : {-1.0f, 1.0f}) {
+                    sf::CircleShape ear(4.0f);
+                    ear.setOrigin({4.0f, 4.0f});
+                    ear.setPosition({cx + 16.0f + es * 8.0f, previewY - 24.0f});
+                    ear.setFillColor(pc); win.draw(ear);
+                }
+                break;
+            }
+            case CharacterType::Tiger: {
+                // Tiger body with stripes
+                sf::CircleShape catBody(18.0f);
+                catBody.setScale({1.2f, 0.8f});
+                catBody.setOrigin({18.0f, 18.0f});
+                catBody.setPosition({cx, previewY});
+                catBody.setFillColor(pc);
+                catBody.setOutlineColor(sf::Color::Black); catBody.setOutlineThickness(1.0f);
+                win.draw(catBody);
+                // Stripes
+                for (int si = -2; si <= 2; si++) {
+                    sf::VertexArray st(sf::PrimitiveType::Lines, 2);
+                    st[0] = sf::Vertex{{cx + si * 7.0f, previewY - 10.0f}, sf::Color(0, 0, 0, 180)};
+                    st[1] = sf::Vertex{{cx + si * 7.0f + 2.0f, previewY + 10.0f}, sf::Color(0, 0, 0, 180)};
+                    win.draw(st);
+                }
+                // Head
+                sf::CircleShape catHead(12.0f);
+                catHead.setOrigin({12.0f, 12.0f});
+                catHead.setPosition({cx + 16.0f, previewY - 14.0f});
+                catHead.setFillColor(pc);
+                catHead.setOutlineColor(sf::Color::Black); catHead.setOutlineThickness(1.0f);
+                win.draw(catHead);
+                // Pointed ears
                 for (float es : {-1.0f, 1.0f}) {
                     sf::ConvexShape ear(3);
-                    ear.setPoint(0, {cx + 16.0f + es * 6.0f, previewY - 24.0f});
-                    ear.setPoint(1, {cx + 16.0f + es * 3.0f, previewY - 36.0f});
-                    ear.setPoint(2, {cx + 16.0f + es * 10.0f, previewY - 28.0f});
+                    ear.setPoint(0, {cx + 16.0f + es * 5.0f, previewY - 24.0f});
+                    ear.setPoint(1, {cx + 16.0f + es * 2.0f, previewY - 34.0f});
+                    ear.setPoint(2, {cx + 16.0f + es * 9.0f, previewY - 28.0f});
                     ear.setFillColor(pc); win.draw(ear);
+                }
+                // White muzzle
+                sf::CircleShape muz(4.0f);
+                muz.setOrigin({4.0f, 4.0f});
+                muz.setPosition({cx + 22.0f, previewY - 11.0f});
+                muz.setFillColor(sf::Color(240, 230, 210)); win.draw(muz);
+                break;
+            }
+            case CharacterType::Jaguar: {
+                // Jaguar body with rosettes
+                sf::CircleShape catBody(18.0f);
+                catBody.setScale({1.2f, 0.8f});
+                catBody.setOrigin({18.0f, 18.0f});
+                catBody.setPosition({cx, previewY});
+                catBody.setFillColor(pc);
+                catBody.setOutlineColor(sf::Color::Black); catBody.setOutlineThickness(1.0f);
+                win.draw(catBody);
+                // Rosette spots
+                for (int si = -2; si <= 2; si++) {
+                    float sx = cx + si * 8.0f;
+                    sf::CircleShape spot(3.0f);
+                    spot.setOrigin({3.0f, 3.0f});
+                    spot.setPosition({sx, previewY + (si % 2) * 4.0f});
+                    spot.setFillColor(sf::Color::Transparent);
+                    spot.setOutlineColor(sf::Color(0, 0, 0, 160));
+                    spot.setOutlineThickness(1.0f);
+                    win.draw(spot);
+                }
+                // Head
+                sf::CircleShape catHead(12.0f);
+                catHead.setOrigin({12.0f, 12.0f});
+                catHead.setPosition({cx + 16.0f, previewY - 14.0f});
+                catHead.setFillColor(pc);
+                catHead.setOutlineColor(sf::Color::Black); catHead.setOutlineThickness(1.0f);
+                win.draw(catHead);
+                // Round ears
+                for (float es : {-1.0f, 1.0f}) {
+                    sf::CircleShape ear(4.0f);
+                    ear.setOrigin({4.0f, 4.0f});
+                    ear.setPosition({cx + 16.0f + es * 8.0f, previewY - 24.0f});
+                    ear.setFillColor(pc); win.draw(ear);
+                }
+                break;
+            }
+            case CharacterType::Panther: {
+                // Panther - dark sleek body
+                sf::Color darkPc(pc.r * 2 / 3, pc.g * 2 / 3, pc.b * 2 / 3);
+                sf::CircleShape catBody(18.0f);
+                catBody.setScale({1.3f, 0.7f});
+                catBody.setOrigin({18.0f, 18.0f});
+                catBody.setPosition({cx, previewY});
+                catBody.setFillColor(darkPc);
+                catBody.setOutlineColor(sf::Color::Black); catBody.setOutlineThickness(1.0f);
+                win.draw(catBody);
+                // Head
+                sf::CircleShape catHead(10.0f);
+                catHead.setOrigin({10.0f, 10.0f});
+                catHead.setPosition({cx + 18.0f, previewY - 12.0f});
+                catHead.setFillColor(darkPc);
+                catHead.setOutlineColor(sf::Color::Black); catHead.setOutlineThickness(1.0f);
+                win.draw(catHead);
+                // Glowing eyes
+                for (float es : {-1.0f, 1.0f}) {
+                    sf::CircleShape eye(2.0f);
+                    eye.setOrigin({2.0f, 2.0f});
+                    eye.setPosition({cx + 21.0f + es * 3.0f, previewY - 14.0f});
+                    eye.setFillColor(sf::Color(220, 255, 100));
+                    win.draw(eye);
+                }
+                break;
+            }
+            case CharacterType::Cheetah: {
+                // Cheetah - slim body with spots
+                sf::CircleShape catBody(18.0f);
+                catBody.setScale({1.3f, 0.65f});
+                catBody.setOrigin({18.0f, 18.0f});
+                catBody.setPosition({cx, previewY});
+                catBody.setFillColor(pc);
+                catBody.setOutlineColor(sf::Color::Black); catBody.setOutlineThickness(1.0f);
+                win.draw(catBody);
+                // Solid spots
+                for (int si = -3; si <= 3; si++) {
+                    float sx = cx + si * 5.0f;
+                    sf::CircleShape spot(1.5f);
+                    spot.setOrigin({1.5f, 1.5f});
+                    spot.setPosition({sx, previewY + (si % 2) * 3.0f});
+                    spot.setFillColor(sf::Color(0, 0, 0, 180));
+                    win.draw(spot);
+                }
+                // Head
+                sf::CircleShape catHead(9.0f);
+                catHead.setOrigin({9.0f, 9.0f});
+                catHead.setPosition({cx + 18.0f, previewY - 10.0f});
+                catHead.setFillColor(pc);
+                catHead.setOutlineColor(sf::Color::Black); catHead.setOutlineThickness(1.0f);
+                win.draw(catHead);
+                // Tear lines
+                for (float es : {-1.0f, 1.0f}) {
+                    sf::VertexArray tear(sf::PrimitiveType::LineStrip, 2);
+                    tear[0] = sf::Vertex{{cx + 20.0f + es * 2.0f, previewY - 8.0f}, sf::Color::Black};
+                    tear[1] = sf::Vertex{{cx + 22.0f + es * 1.0f, previewY - 2.0f}, sf::Color::Black};
+                    win.draw(tear);
                 }
                 break;
             }
@@ -594,10 +753,27 @@ void Game::startGame() {
             playerIdx, m_physics, spawns[playerIdx].x, spawns[playerIdx].y,
             m_playerColors[i], ct);
         p->setLives(rules.livesPerPlayer);
-        p->setMaxHealth(rules.maxHealth);
+        if (!isBigCat(ct)) {
+            p->setMaxHealth(rules.maxHealth);
+        }
 
         // Give innate weapons
-        if (ct == CharacterType::Cobra) {
+        if (ct == CharacterType::Lion) {
+            auto* w = m_weaponFactory.getWeapon("Lion Bite");
+            if (w) p->equipWeapon(*w);
+        } else if (ct == CharacterType::Tiger) {
+            auto* w = m_weaponFactory.getWeapon("Tiger Claw");
+            if (w) p->equipWeapon(*w);
+        } else if (ct == CharacterType::Jaguar) {
+            auto* w = m_weaponFactory.getWeapon("Jaguar Bite");
+            if (w) p->equipWeapon(*w);
+        } else if (ct == CharacterType::Panther) {
+            auto* w = m_weaponFactory.getWeapon("Panther Slash");
+            if (w) p->equipWeapon(*w);
+        } else if (ct == CharacterType::Cheetah) {
+            auto* w = m_weaponFactory.getWeapon("Cheetah Strike");
+            if (w) p->equipWeapon(*w);
+        } else if (ct == CharacterType::Cobra) {
             auto* poison = m_weaponFactory.getWeapon("Poison Spit");
             if (poison) p->equipWeapon(*poison);
         } else if (ct == CharacterType::Unicorn) {
@@ -662,9 +838,10 @@ void Game::processEvents() {
         if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
             if (k->code == sf::Keyboard::Key::Escape) m_renderer.getWindow().close();
             if (k->code == sf::Keyboard::Key::R && m_state == GameState::RoundOver) {
-                const auto& spawns = m_arena.getSpawnPoints();
-                for (size_t i = 0; i < m_players.size(); i++)
-                    m_players[i]->respawn(spawns[i].x, spawns[i].y);
+                for (size_t i = 0; i < m_players.size(); i++) {
+                    b2Vec2 safe = m_arena.getSafeSpawnPoint(static_cast<int>(i), m_physics);
+                    m_players[i]->respawn(safe.x, safe.y);
+                }
                 m_pickups.clear();
                 m_roundTimer = m_rulesEngine.getRules().roundTimeSeconds;
                 m_state = GameState::Playing;
@@ -673,6 +850,8 @@ void Game::processEvents() {
             if (k->code == sf::Keyboard::Key::Backspace && m_state == GameState::RoundOver) {
                 m_state = GameState::CharSelect;
                 for (auto& ps : m_selectState) { ps.ready = false; }
+                m_prevSelectLeft.fill(false);
+                m_prevSelectRight.fill(false);
             }
         }
     }
@@ -706,8 +885,16 @@ void Game::handlePlayerInput(float dt) {
 
         if (pi.jumpPressed) player->jump();
 
-        // Aiming
-        if (pi.aimUp) player->aimUp();
+        // Wall climbing for Jaguar/Panther: aim-up while airborne and touching a wall
+        bool didWallClimb = false;
+        if (canWallClimb(player->getCharacterType()) && pi.aimUp
+            && !player->isOnGround() && player->isTouchingWall()) {
+            player->wallClimbUp();
+            didWallClimb = true;
+        }
+
+        // Aiming (skip aim-up when wall climbing to avoid conflict)
+        if (pi.aimUp && !didWallClimb) player->aimUp();
         else if (pi.aimDown) player->aimDown();
         else player->resetAim();
 
@@ -740,14 +927,14 @@ void Game::handleMeleeAttack(StickFigure& attacker) {
         bool close = dist < weapon.range * 0.5f;
 
         if (inRange && (facing || close)) {
-            float dmg = weapon.damage * rules.damageMultiplier;
+            float dmg = weapon.damage * rules.damageMultiplier * attacker.getDamageMultiplier();
             float kbX = weapon.knockbackForce * dir * rules.knockbackMultiplier;
             float kbY = weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
             target->takeDamage(dmg, kbX, kbY);
         }
     }
 
-    // Worms-style terrain carving from melee — small chip in front of attacker
+    // Worms-style terrain carving from melee -- small chip in front of attacker
     float envR = weapon.envDamageRadius;
     if (envR <= 0.0f) envR = weapon.damage * 0.015f; // small carve radius
     float hitX = ap.x + dir * weapon.range * 0.6f;
@@ -808,6 +995,7 @@ void Game::spawnProjectile(StickFigure& shooter) {
         proj.bodyId = bullet;
         proj.weapon = weapon;
         proj.ownerIndex = shooter.getPlayerIndex();
+        proj.ownerDamageMultiplier = shooter.getDamageMultiplier();
         proj.lifetime = weapon.projectileLifetime;
         proj.alive = true;
 
@@ -885,7 +1073,7 @@ void Game::updateProjectiles(float dt) {
                     player->takeDamage(5.0f, 0.0f, 0.0f);
                     player->applyPoison(proj.poisonDps, proj.poisonDuration);
                 } else {
-                    float dmg = proj.weapon.damage * rules.damageMultiplier;
+                    float dmg = proj.weapon.damage * rules.damageMultiplier * proj.ownerDamageMultiplier;
                     if (isExplosive && proj.weapon.explosionRadius > 0.0f) {
                         float falloff = 1.0f - (dist / proj.weapon.explosionRadius);
                         dmg *= std::max(0.3f, falloff);
@@ -920,7 +1108,7 @@ void Game::updateProjectiles(float dt) {
                     float dx = pp.x - plp.x, dy = pp.y - plp.y;
                     float dist = std::sqrt(dx * dx + dy * dy);
                     if (dist < hitR) {
-                        float dmg = proj.weapon.damage * rules.damageMultiplier;
+                        float dmg = proj.weapon.damage * rules.damageMultiplier * proj.ownerDamageMultiplier;
                         float falloff = 1.0f - (dist / proj.weapon.explosionRadius);
                         dmg *= std::max(0.3f, falloff);
                         float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
@@ -931,7 +1119,7 @@ void Game::updateProjectiles(float dt) {
                 }
             }
 
-            // Carve terrain — nuke uses full explosion radius, regular explosives a bit less
+            // Carve terrain -- nuke uses full explosion radius, regular explosives a bit less
             if (proj.weapon.destroysPlatforms) {
                 m_arena.carveCircle(m_physics, pp.x, pp.y, proj.weapon.explosionRadius);
             } else {
@@ -984,7 +1172,10 @@ void Game::updateWeaponSpawns(float dt) {
             pickup.weapon = m_weaponFactory.getRandomWeapon();
         } while (pickup.weapon.name == "Fists" || pickup.weapon.name == "Poison Spit"
                  || pickup.weapon.name == "Horn Blast" || pickup.weapon.name == "Jaw Snap"
-                 || pickup.weapon.name == "Purse Swing");
+                 || pickup.weapon.name == "Purse Swing"
+                 || pickup.weapon.name == "Lion Bite" || pickup.weapon.name == "Tiger Claw"
+                 || pickup.weapon.name == "Jaguar Bite" || pickup.weapon.name == "Panther Slash"
+                 || pickup.weapon.name == "Cheetah Strike");
         pickup.alive = true;
         pickup.bobTimer = 0.0f;
         m_pickups.push_back(pickup);
@@ -1034,11 +1225,11 @@ void Game::checkFallDeath() {
         b2Vec2 pos = player->getPosition();
 
         if (m_wrapAround) {
-            // Vertical wrap: fell below bottom → appear at top
+            // Vertical wrap: fell below bottom -> appear at top
             if (pos.y < worldBot) {
                 player->teleportTo(pos.x, worldTop);
             }
-            // Horizontal wrap: off left/right → appear on opposite side
+            // Horizontal wrap: off left/right -> appear on opposite side
             if (pos.x < -worldHalfW) {
                 player->teleportTo(worldHalfW - 1.0f, pos.y);
             } else if (pos.x > worldHalfW) {
@@ -1052,7 +1243,8 @@ void Game::checkFallDeath() {
                 player->setLives(lives);
                 if (lives > 0) {
                     size_t idx = static_cast<size_t>(player->getPlayerIndex());
-                    player->startRespawnTimer(rules.respawnDelay, spawns[idx].x, spawns[idx].y);
+                    b2Vec2 safe = m_arena.getSafeSpawnPoint(static_cast<int>(idx), m_physics);
+                    player->startRespawnTimer(rules.respawnDelay, safe.x, safe.y);
                 }
             }
         }

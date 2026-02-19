@@ -12,7 +12,47 @@ StickFigure::StickFigure(int playerIndex, Physics& physics, float spawnX, float 
     , m_physics(&physics), m_health(100.0f)
 {
     createBodies(physics, spawnX, spawnY);
+    applyCharacterStats();
 }
+
+void StickFigure::applyCharacterStats() {
+    switch (m_charType) {
+        case CharacterType::Lion:
+            m_maxHealth = 130.0f;
+            m_health = 130.0f;
+            m_moveSpeed = 7.5f;
+            m_jumpForce = 12.0f;
+            break;
+        case CharacterType::Tiger:
+            m_maxHealth = 110.0f;
+            m_health = 110.0f;
+            m_moveSpeed = 6.5f;
+            m_jumpForce = 11.0f;
+            m_damageMultiplier = 1.25f;
+            break;
+        case CharacterType::Cheetah:
+            m_maxHealth = 75.0f;
+            m_health = 75.0f;
+            m_moveSpeed = 11.5f;
+            m_jumpForce = 14.0f;
+            break;
+        case CharacterType::Jaguar:
+            m_maxHealth = 100.0f;
+            m_health = 100.0f;
+            m_moveSpeed = 8.5f;
+            m_jumpForce = 13.0f;
+            break;
+        case CharacterType::Panther:
+            m_maxHealth = 95.0f;
+            m_health = 95.0f;
+            m_moveSpeed = 9.5f;
+            m_jumpForce = 13.0f;
+            break;
+        default:
+            break;
+    }
+}
+
 
 void StickFigure::createBodies(Physics& physics, float spawnX, float spawnY) {
     b2WorldId worldId = physics.getWorldId();
@@ -132,13 +172,17 @@ bool StickFigure::canAttack() const {
 
 void StickFigure::attack() {
     m_attackCooldown = m_weapon.attackRate;
-    m_attackAnimTimer = 0.2f;
+    m_attackAnimTimer = std::min(0.2f, m_weapon.attackRate * 0.8f);
     if (m_currentAmmo > 0) m_currentAmmo--;
 }
 
 void StickFigure::equipWeapon(const WeaponData& weapon) {
     m_weapon = weapon;
     m_currentAmmo = weapon.ammo;
+    if (!m_hasInnateWeapon) {
+        m_innateWeapon = weapon;
+        m_hasInnateWeapon = true;
+    }
 }
 
 void StickFigure::takeDamage(float amount, float knockbackX, float knockbackY) {
@@ -192,8 +236,13 @@ void StickFigure::respawn(float x, float y) {
     b2Body_SetLinearVelocity(m_rightLeg, zero);
     b2Body_SetAngularVelocity(m_rightLeg, 0.0f);
 
-    m_weapon = WeaponData{};
-    m_currentAmmo = -1;
+    if (m_hasInnateWeapon) {
+        m_weapon = m_innateWeapon;
+        m_currentAmmo = m_innateWeapon.ammo;
+    } else {
+        m_weapon = WeaponData{};
+        m_currentAmmo = -1;
+    }
 }
 
 void StickFigure::teleportTo(float x, float y) {
@@ -251,18 +300,59 @@ void StickFigure::startRespawnTimer(float delay, float x, float y) {
     m_respawnTimer = delay;
     m_pendingRespawnX = x;
     m_pendingRespawnY = y;
-    // Move body off-screen while waiting
-    b2Body_SetLinearVelocity(m_torso, {0.0f, 0.0f});
-    b2Body_SetTransform(m_torso, {x, -100.0f}, b2MakeRot(0.0f));
+    // Move all bodies off-screen while waiting
+    b2Vec2 zero = {0.0f, 0.0f};
+    b2Rot zeroRot = b2MakeRot(0.0f);
+    b2Vec2 offscreen = {x, -100.0f};
+    auto hideBody = [&](b2BodyId body) {
+        b2Body_SetLinearVelocity(body, zero);
+        b2Body_SetAngularVelocity(body, 0.0f);
+        b2Body_SetTransform(body, offscreen, zeroRot);
+    };
+    hideBody(m_torso);
+    hideBody(m_head);
+    hideBody(m_leftArm);
+    hideBody(m_rightArm);
+    hideBody(m_leftLeg);
+    hideBody(m_rightLeg);
 }
 
 b2Vec2 StickFigure::getPosition() const { return b2Body_GetPosition(m_torso); }
+
+
+bool StickFigure::isTouchingWall() const {
+    b2Vec2 pos = b2Body_GetPosition(m_torso);
+    b2QueryFilter filter = b2DefaultQueryFilter();
+    filter.categoryBits = CAT_PLAYER;
+    filter.maskBits = CAT_PLATFORM;
+    // Cast a short ray to the left and right
+    for (float side : {-1.0f, 1.0f}) {
+        b2Vec2 origin = {pos.x + side * (m_config.bodyWidth / 2.0f + 0.05f), pos.y};
+        b2Vec2 translation = {side * 0.3f, 0.0f};
+        b2RayResult result = b2World_CastRayClosest(m_physics->getWorldId(), origin, translation, filter);
+        if (result.hit) return true;
+    }
+    return false;
+}
+
+void StickFigure::wallClimbUp() {
+    if (!canWallClimb(m_charType)) return;
+    if (!isTouchingWall()) return;
+    // Allow upward movement along the wall
+    b2Vec2 v = b2Body_GetLinearVelocity(m_torso);
+    b2Body_SetLinearVelocity(m_torso, {v.x, m_moveSpeed * 0.7f});
+}
+
 
 void StickFigure::draw(sf::RenderTarget& target) const {
     if (!isAlive()) return;
 
     switch (m_charType) {
-        case CharacterType::Cat:       drawCat(target); break;
+        case CharacterType::Lion:      drawLion(target); break;
+        case CharacterType::Tiger:     drawTiger(target); break;
+        case CharacterType::Jaguar:    drawJaguar(target); break;
+        case CharacterType::Panther:   drawPanther(target); break;
+        case CharacterType::Cheetah:   drawCheetah(target); break;
         case CharacterType::Cobra:     drawCobra(target); break;
         case CharacterType::Unicorn:   drawUnicorn(target); break;
         case CharacterType::Crocodile: drawCrocodile(target); break;
@@ -271,11 +361,9 @@ void StickFigure::draw(sf::RenderTarget& target) const {
     }
 
     if (m_attackAnimTimer > 0.0f) drawAttackEffect(target);
-
-    // Draw aim indicator for ranged weapons
     if (m_weapon.type != WeaponType::Melee) drawAimIndicator(target);
 
-    // Poison effect - green particles
+    // Poison effect
     if (m_poisonTimer > 0.0f) {
         sf::Vector2f pos = toScreen(getPosition());
         for (int i = 0; i < 3; i++) {
@@ -285,6 +373,19 @@ void StickFigure::draw(sf::RenderTarget& target) const {
             dot.setPosition({pos.x + offset, pos.y - 25.0f - static_cast<float>(i) * 4.0f});
             dot.setFillColor(sf::Color(0, 200, 0, 180));
             target.draw(dot);
+        }
+    }
+
+    // Wall climb indicator for Jaguar/Panther
+    if (canWallClimb(m_charType) && isTouchingWall() && !isOnGround()) {
+        sf::Vector2f pos = toScreen(getPosition());
+        // Small claw marks
+        for (int i = 0; i < 3; i++) {
+            float yOff = static_cast<float>(i) * 5.0f;
+            sf::VertexArray claw(sf::PrimitiveType::Lines, 2);
+            claw[0] = sf::Vertex{{pos.x + m_facingDir * 8.0f, pos.y - 5.0f + yOff}, sf::Color(200, 200, 200, 150)};
+            claw[1] = sf::Vertex{{pos.x + m_facingDir * 12.0f, pos.y - 2.0f + yOff}, sf::Color(200, 200, 200, 50)};
+            target.draw(claw);
         }
     }
 }
@@ -318,65 +419,463 @@ void StickFigure::drawStick(sf::RenderTarget& target) const {
     drawLimb(tBot, b2Body_GetPosition(m_rightLeg));
 }
 
-void StickFigure::drawCat(sf::RenderTarget& target) const {
+// ============================================================
+//  Big cat shared body helper
+// ============================================================
+static void drawBigCatBase(sf::RenderTarget& target, sf::Vector2f c, float dir,
+                           sf::Color dc, float bodyW, float bodyH, float headR) {
+    // Body
+    sf::RectangleShape body({bodyW, bodyH});
+    body.setOrigin({bodyW / 2.0f, bodyH / 2.0f});
+    body.setPosition(c);
+    body.setFillColor(dc);
+    body.setOutlineColor(sf::Color::Black);
+    body.setOutlineThickness(1.0f);
+    target.draw(body);
+
+    // 4 legs
+    for (float lx : {-0.32f, -0.12f, 0.12f, 0.32f}) {
+        sf::RectangleShape leg({4.0f, 12.0f});
+        leg.setOrigin({2.0f, 0.0f});
+        leg.setPosition({c.x + lx * bodyW, c.y + bodyH / 2.0f});
+        leg.setFillColor(dc);
+        leg.setOutlineColor(sf::Color::Black);
+        leg.setOutlineThickness(0.5f);
+        target.draw(leg);
+    }
+
+    // Head
+    sf::CircleShape head(headR);
+    head.setOrigin({headR, headR});
+    head.setPosition({c.x + dir * (bodyW / 2.0f + headR - 2.0f), c.y - 5.0f});
+    head.setFillColor(dc);
+    head.setOutlineColor(sf::Color::Black);
+    head.setOutlineThickness(1.0f);
+    target.draw(head);
+}
+
+static sf::Vector2f bigCatHeadCenter(sf::Vector2f c, float dir,
+                                      float bodyW = 30.0f, float headR = 11.0f) {
+    return {c.x + dir * (bodyW / 2.0f + headR - 2.0f), c.y - 5.0f};
+}
+
+// ============================================================
+//  LION - mane, round ears, golden
+// ============================================================
+void StickFigure::drawLion(sf::RenderTarget& target) const {
     sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
     b2Vec2 tp = b2Body_GetPosition(m_torso);
     sf::Vector2f c = toScreen(tp);
     float dir = static_cast<float>(m_facingDir);
 
-    // Body
-    sf::RectangleShape body({28.0f, 16.0f});
-    body.setOrigin({14.0f, 8.0f}); body.setPosition(c);
-    body.setFillColor(dc); body.setOutlineColor(sf::Color::Black); body.setOutlineThickness(1.0f);
-    target.draw(body);
+    // Tail with tuft
+    float tx = c.x - dir * 15.0f;
+    sf::VertexArray tail(sf::PrimitiveType::LineStrip, 4);
+    tail[0] = sf::Vertex{{tx, c.y}, dc};
+    tail[1] = sf::Vertex{{tx - dir * 8.0f, c.y - 10.0f}, dc};
+    tail[2] = sf::Vertex{{tx - dir * 12.0f, c.y - 18.0f}, dc};
+    tail[3] = sf::Vertex{{tx - dir * 9.0f, c.y - 24.0f}, dc};
+    target.draw(tail);
+    sf::Color maneColor(
+        static_cast<uint8_t>(std::min(255, dc.r + 40)),
+        static_cast<uint8_t>(std::min(255, (int)(dc.g * 0.7f + 50))),
+        static_cast<uint8_t>(dc.b / 3));
+    sf::CircleShape tuft(4.0f);
+    tuft.setOrigin({4.0f, 4.0f});
+    tuft.setPosition(tail[3].position);
+    tuft.setFillColor(maneColor);
+    target.draw(tuft);
 
-    // Head
-    sf::CircleShape head(10.0f);
-    head.setOrigin({10.0f, 10.0f});
-    head.setPosition({c.x + dir * 19.0f, c.y - 4.0f});
-    head.setFillColor(dc); head.setOutlineColor(sf::Color::Black); head.setOutlineThickness(1.0f);
-    target.draw(head);
+    drawBigCatBase(target, c, dir, dc, 30.0f, 17.0f, 11.0f);
+    sf::Vector2f hc = bigCatHeadCenter(c, dir);
 
-    sf::Vector2f hc = head.getPosition();
-    // Ears
+    // Mane spikes
+    constexpr int maneSpikes = 14;
+    for (int i = 0; i < maneSpikes; i++) {
+        float angle = static_cast<float>(i) / maneSpikes * 2.0f * 3.14159f;
+        float len = 14.0f + std::sin(m_animTime * 2.0f + angle * 3.0f) * 2.0f;
+        sf::VertexArray spike(sf::PrimitiveType::Lines, 2);
+        spike[0] = sf::Vertex{{hc.x + std::cos(angle) * 10.0f, hc.y + std::sin(angle) * 10.0f}, maneColor};
+        spike[1] = sf::Vertex{{hc.x + std::cos(angle) * len, hc.y + std::sin(angle) * len}, maneColor};
+        target.draw(spike);
+    }
+
+    // Round ears
     for (float s : {-1.0f, 1.0f}) {
-        sf::ConvexShape ear(3);
-        ear.setPoint(0, {hc.x + s * 5.0f, hc.y - 8.0f});
-        ear.setPoint(1, {hc.x + s * 2.0f, hc.y - 16.0f});
-        ear.setPoint(2, {hc.x + s * 8.0f, hc.y - 13.0f});
-        ear.setFillColor(dc); ear.setOutlineColor(sf::Color::Black); ear.setOutlineThickness(1.0f);
+        sf::CircleShape ear(5.0f);
+        ear.setOrigin({5.0f, 5.0f});
+        ear.setPosition({hc.x + s * 8.0f, hc.y - 10.0f});
+        ear.setFillColor(dc);
+        ear.setOutlineColor(sf::Color::Black);
+        ear.setOutlineThickness(0.5f);
         target.draw(ear);
     }
     // Eyes
     for (float s : {-1.0f, 1.0f}) {
-        sf::CircleShape eye(2.0f); eye.setOrigin({2.0f, 2.0f});
-        eye.setPosition({hc.x + dir * 3.0f + s * 3.0f, hc.y - 2.0f});
-        eye.setFillColor(sf::Color::Black); target.draw(eye);
+        sf::CircleShape eye(2.0f);
+        eye.setOrigin({2.0f, 2.0f});
+        eye.setPosition({hc.x + dir * 4.0f + s * 3.0f, hc.y - 2.0f});
+        eye.setFillColor(sf::Color(200, 170, 50));
+        target.draw(eye);
+        sf::CircleShape pupil(1.0f);
+        pupil.setOrigin({1.0f, 1.0f});
+        pupil.setPosition({hc.x + dir * 4.5f + s * 3.0f, hc.y - 2.0f});
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
     }
-    // Nose + Whiskers
-    sf::CircleShape nose(1.5f); nose.setOrigin({1.5f, 1.5f});
-    nose.setPosition({hc.x + dir * 7.0f, hc.y + 1.0f});
-    nose.setFillColor(sf::Color(200, 100, 100)); target.draw(nose);
+    // Nose
+    sf::ConvexShape nose(3);
+    nose.setPoint(0, {hc.x + dir * 8.0f, hc.y + 1.0f});
+    nose.setPoint(1, {hc.x + dir * 6.0f, hc.y + 4.0f});
+    nose.setPoint(2, {hc.x + dir * 10.0f, hc.y + 4.0f});
+    nose.setFillColor(sf::Color(60, 40, 30));
+    target.draw(nose);
+    // Whiskers
     for (float wy : {-1.0f, 0.0f, 1.0f}) {
         sf::VertexArray w(sf::PrimitiveType::Lines, 2);
-        w[0] = sf::Vertex{{hc.x + dir * 8.0f, hc.y + 1.0f + wy * 2.0f}, sf::Color::Black};
-        w[1] = sf::Vertex{{hc.x + dir * 20.0f, hc.y + 1.0f + wy * 5.0f}, sf::Color::Black};
+        w[0] = sf::Vertex{{hc.x + dir * 9.0f, hc.y + 2.0f + wy * 2.0f}, sf::Color::Black};
+        w[1] = sf::Vertex{{hc.x + dir * 22.0f, hc.y + 2.0f + wy * 5.0f}, sf::Color::Black};
         target.draw(w);
     }
-    // Tail
-    sf::VertexArray tail(sf::PrimitiveType::LineStrip, 4);
-    float tx = c.x - dir * 14.0f;
+}
+
+// ============================================================
+//  TIGER - stripes, pointed ears, white muzzle
+// ============================================================
+void StickFigure::drawTiger(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f c = toScreen(tp);
+    float dir = static_cast<float>(m_facingDir);
+
+    // Striped tail
+    float tx = c.x - dir * 15.0f;
+    sf::VertexArray tail(sf::PrimitiveType::LineStrip, 5);
     tail[0] = sf::Vertex{{tx, c.y}, dc};
-    tail[1] = sf::Vertex{{tx - dir * 8.0f, c.y - 8.0f}, dc};
-    tail[2] = sf::Vertex{{tx - dir * 12.0f, c.y - 16.0f}, dc};
-    tail[3] = sf::Vertex{{tx - dir * 8.0f, c.y - 22.0f}, dc};
+    tail[1] = sf::Vertex{{tx - dir * 6.0f, c.y - 6.0f}, dc};
+    tail[2] = sf::Vertex{{tx - dir * 10.0f, c.y - 14.0f}, dc};
+    tail[3] = sf::Vertex{{tx - dir * 8.0f, c.y - 20.0f}, sf::Color::Black};
+    tail[4] = sf::Vertex{{tx - dir * 10.0f, c.y - 24.0f}, dc};
     target.draw(tail);
-    // Legs
-    for (float lx : {-0.3f, -0.1f, 0.1f, 0.3f}) {
-        sf::VertexArray leg(sf::PrimitiveType::Lines, 2);
-        leg[0] = sf::Vertex{{c.x + lx * 28.0f, c.y + 8.0f}, dc};
-        leg[1] = sf::Vertex{{c.x + lx * 28.0f, c.y + 18.0f}, dc};
-        target.draw(leg);
+
+    drawBigCatBase(target, c, dir, dc, 30.0f, 17.0f, 11.0f);
+
+    // Body stripes
+    sf::Color stripeC(0, 0, 0, 180);
+    for (int i = -2; i <= 2; i++) {
+        float sx = c.x + i * 6.0f;
+        sf::VertexArray stripe(sf::PrimitiveType::Lines, 2);
+        stripe[0] = sf::Vertex{{sx, c.y - 7.0f}, stripeC};
+        stripe[1] = sf::Vertex{{sx + 2.0f, c.y + 7.0f}, stripeC};
+        target.draw(stripe);
+    }
+
+    sf::Vector2f hc = bigCatHeadCenter(c, dir);
+    // Pointed ears
+    for (float s : {-1.0f, 1.0f}) {
+        sf::ConvexShape ear(3);
+        ear.setPoint(0, {hc.x + s * 5.0f, hc.y - 8.0f});
+        ear.setPoint(1, {hc.x + s * 2.0f, hc.y - 18.0f});
+        ear.setPoint(2, {hc.x + s * 9.0f, hc.y - 12.0f});
+        ear.setFillColor(dc);
+        ear.setOutlineColor(sf::Color::Black);
+        ear.setOutlineThickness(0.5f);
+        target.draw(ear);
+    }
+    // Face stripes
+    for (float s : {-1.0f, 1.0f}) {
+        sf::VertexArray fs(sf::PrimitiveType::Lines, 2);
+        fs[0] = sf::Vertex{{hc.x + s * 6.0f, hc.y - 6.0f}, sf::Color::Black};
+        fs[1] = sf::Vertex{{hc.x + s * 10.0f, hc.y + 2.0f}, sf::Color::Black};
+        target.draw(fs);
+    }
+    // White muzzle
+    sf::CircleShape muzzle(5.0f);
+    muzzle.setOrigin({5.0f, 5.0f});
+    muzzle.setPosition({hc.x + dir * 6.0f, hc.y + 3.0f});
+    muzzle.setFillColor(sf::Color(240, 230, 210));
+    muzzle.setOutlineColor(sf::Color::Black);
+    muzzle.setOutlineThickness(0.5f);
+    target.draw(muzzle);
+    // Eyes
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape eye(2.5f);
+        eye.setOrigin({2.5f, 2.5f});
+        eye.setPosition({hc.x + dir * 3.0f + s * 4.0f, hc.y - 2.0f});
+        eye.setFillColor(sf::Color(230, 180, 50));
+        target.draw(eye);
+        sf::CircleShape pupil(1.0f);
+        pupil.setOrigin({1.0f, 1.0f});
+        pupil.setPosition({hc.x + dir * 3.5f + s * 4.0f, hc.y - 2.0f});
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
+    }
+    // Nose
+    sf::ConvexShape nose(3);
+    nose.setPoint(0, {hc.x + dir * 8.0f, hc.y + 0.0f});
+    nose.setPoint(1, {hc.x + dir * 6.0f, hc.y + 3.0f});
+    nose.setPoint(2, {hc.x + dir * 10.0f, hc.y + 3.0f});
+    nose.setFillColor(sf::Color(180, 90, 90));
+    target.draw(nose);
+    // Whiskers
+    for (float wy : {-1.0f, 0.0f, 1.0f}) {
+        sf::VertexArray w(sf::PrimitiveType::Lines, 2);
+        w[0] = sf::Vertex{{hc.x + dir * 9.0f, hc.y + 2.0f + wy * 2.0f}, sf::Color::Black};
+        w[1] = sf::Vertex{{hc.x + dir * 22.0f, hc.y + 2.0f + wy * 4.0f}, sf::Color::Black};
+        target.draw(w);
+    }
+}
+
+// ============================================================
+//  JAGUAR - rosette spots, strong jaw
+// ============================================================
+void StickFigure::drawJaguar(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f c = toScreen(tp);
+    float dir = static_cast<float>(m_facingDir);
+
+    // Tail
+    float tx = c.x - dir * 15.0f;
+    sf::VertexArray tail(sf::PrimitiveType::LineStrip, 4);
+    tail[0] = sf::Vertex{{tx, c.y}, dc};
+    tail[1] = sf::Vertex{{tx - dir * 7.0f, c.y - 8.0f}, dc};
+    tail[2] = sf::Vertex{{tx - dir * 11.0f, c.y - 16.0f}, dc};
+    tail[3] = sf::Vertex{{tx - dir * 13.0f, c.y - 12.0f}, dc};
+    target.draw(tail);
+
+    drawBigCatBase(target, c, dir, dc, 30.0f, 17.0f, 11.0f);
+
+    // Rosette spots
+    sf::Color spotOuter(0, 0, 0, 160);
+    sf::Color spotInner(
+        static_cast<uint8_t>(std::min(255, dc.r + 20)),
+        static_cast<uint8_t>(std::min(255, dc.g + 10)),
+        dc.b, dc.a);
+    float spotPositions[][2] = {{-8.0f, -3.0f}, {0.0f, 2.0f}, {8.0f, -2.0f},
+                                 {-4.0f, 4.0f}, {5.0f, 5.0f}, {-10.0f, 3.0f}};
+    for (auto& sp : spotPositions) {
+        sf::CircleShape outer(3.5f);
+        outer.setOrigin({3.5f, 3.5f});
+        outer.setPosition({c.x + sp[0], c.y + sp[1]});
+        outer.setFillColor(sf::Color::Transparent);
+        outer.setOutlineColor(spotOuter);
+        outer.setOutlineThickness(1.2f);
+        target.draw(outer);
+        sf::CircleShape inner(1.5f);
+        inner.setOrigin({1.5f, 1.5f});
+        inner.setPosition({c.x + sp[0], c.y + sp[1]});
+        inner.setFillColor(spotInner);
+        target.draw(inner);
+    }
+
+    sf::Vector2f hc = bigCatHeadCenter(c, dir);
+    // Rounded ears
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape ear(5.0f);
+        ear.setOrigin({5.0f, 5.0f});
+        ear.setPosition({hc.x + s * 8.0f, hc.y - 10.0f});
+        ear.setFillColor(dc);
+        ear.setOutlineColor(sf::Color::Black);
+        ear.setOutlineThickness(0.5f);
+        target.draw(ear);
+    }
+    // Strong jaw
+    sf::RectangleShape muzzle({8.0f, 6.0f});
+    muzzle.setOrigin({4.0f, 3.0f});
+    muzzle.setPosition({hc.x + dir * 8.0f, hc.y + 4.0f});
+    muzzle.setFillColor(sf::Color(240, 220, 190));
+    muzzle.setOutlineColor(sf::Color::Black);
+    muzzle.setOutlineThickness(0.5f);
+    target.draw(muzzle);
+    // Green eyes
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape eye(2.0f);
+        eye.setOrigin({2.0f, 2.0f});
+        eye.setPosition({hc.x + dir * 4.0f + s * 3.5f, hc.y - 2.0f});
+        eye.setFillColor(sf::Color(120, 200, 80));
+        target.draw(eye);
+        sf::CircleShape pupil(1.0f);
+        pupil.setOrigin({1.0f, 1.0f});
+        pupil.setPosition({hc.x + dir * 4.5f + s * 3.5f, hc.y - 2.0f});
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
+    }
+    // Nose
+    sf::CircleShape nose(2.0f);
+    nose.setOrigin({2.0f, 2.0f});
+    nose.setPosition({hc.x + dir * 8.0f, hc.y + 1.0f});
+    nose.setFillColor(sf::Color(80, 50, 40));
+    target.draw(nose);
+    // Face spots
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape fspot(1.2f);
+        fspot.setOrigin({1.2f, 1.2f});
+        fspot.setPosition({hc.x + s * 7.0f, hc.y - 4.0f});
+        fspot.setFillColor(sf::Color(0, 0, 0, 140));
+        target.draw(fspot);
+    }
+    // Whiskers
+    for (float wy : {-1.0f, 1.0f}) {
+        sf::VertexArray w(sf::PrimitiveType::Lines, 2);
+        w[0] = sf::Vertex{{hc.x + dir * 10.0f, hc.y + 3.0f + wy * 2.0f}, sf::Color::Black};
+        w[1] = sf::Vertex{{hc.x + dir * 22.0f, hc.y + 3.0f + wy * 4.0f}, sf::Color::Black};
+        target.draw(w);
+    }
+}
+
+// ============================================================
+//  PANTHER - sleek dark body, glowing eyes, slit pupils
+// ============================================================
+void StickFigure::drawPanther(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f c = toScreen(tp);
+    float dir = static_cast<float>(m_facingDir);
+
+    sf::Color darkDc(
+        static_cast<uint8_t>(dc.r * 2 / 3),
+        static_cast<uint8_t>(dc.g * 2 / 3),
+        static_cast<uint8_t>(dc.b * 2 / 3), dc.a);
+
+    // Sleek tail
+    float tx = c.x - dir * 15.0f;
+    sf::VertexArray tail(sf::PrimitiveType::LineStrip, 5);
+    tail[0] = sf::Vertex{{tx, c.y}, darkDc};
+    tail[1] = sf::Vertex{{tx - dir * 8.0f, c.y - 6.0f}, darkDc};
+    tail[2] = sf::Vertex{{tx - dir * 14.0f, c.y - 14.0f}, darkDc};
+    tail[3] = sf::Vertex{{tx - dir * 16.0f, c.y - 20.0f}, darkDc};
+    tail[4] = sf::Vertex{{tx - dir * 14.0f, c.y - 26.0f}, darkDc};
+    target.draw(tail);
+
+    drawBigCatBase(target, c, dir, darkDc, 32.0f, 15.0f, 10.0f);
+
+    // Sheen highlight
+    sf::Color sheenC(
+        static_cast<uint8_t>(std::min(255, dc.r + 60)),
+        static_cast<uint8_t>(std::min(255, dc.g + 60)),
+        static_cast<uint8_t>(std::min(255, dc.b + 60)), 80);
+    sf::VertexArray sheen(sf::PrimitiveType::Lines, 2);
+    sheen[0] = sf::Vertex{{c.x - 10.0f, c.y - 6.0f}, sheenC};
+    sheen[1] = sf::Vertex{{c.x + 8.0f, c.y - 6.0f}, sheenC};
+    target.draw(sheen);
+
+    sf::Vector2f hc = bigCatHeadCenter(c, dir, 32.0f, 10.0f);
+    // Small ears
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape ear(4.0f);
+        ear.setOrigin({4.0f, 4.0f});
+        ear.setPosition({hc.x + s * 7.0f, hc.y - 9.0f});
+        ear.setFillColor(darkDc);
+        ear.setOutlineColor(sf::Color::Black);
+        ear.setOutlineThickness(0.5f);
+        target.draw(ear);
+    }
+    // Glowing eyes with slit pupils
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape glow(4.0f);
+        glow.setOrigin({4.0f, 4.0f});
+        glow.setPosition({hc.x + dir * 3.0f + s * 3.0f, hc.y - 1.0f});
+        glow.setFillColor(sf::Color(dc.r, dc.g, dc.b, 40));
+        target.draw(glow);
+        sf::CircleShape eye(2.5f);
+        eye.setOrigin({2.5f, 2.5f});
+        eye.setPosition({hc.x + dir * 3.0f + s * 3.0f, hc.y - 1.0f});
+        eye.setFillColor(sf::Color(220, 255, 100));
+        target.draw(eye);
+        sf::RectangleShape pupil({1.2f, 4.0f});
+        pupil.setOrigin({0.6f, 2.0f});
+        pupil.setPosition({hc.x + dir * 3.5f + s * 3.0f, hc.y - 1.0f});
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
+    }
+    // Nose
+    sf::CircleShape nose(1.5f);
+    nose.setOrigin({1.5f, 1.5f});
+    nose.setPosition({hc.x + dir * 7.0f, hc.y + 2.0f});
+    nose.setFillColor(sf::Color(40, 30, 30));
+    target.draw(nose);
+}
+
+// ============================================================
+//  CHEETAH - slim, solid spots, tear lines
+// ============================================================
+void StickFigure::drawCheetah(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f c = toScreen(tp);
+    float dir = static_cast<float>(m_facingDir);
+
+    // Long thin tail with black tip
+    float tx = c.x - dir * 15.0f;
+    sf::VertexArray tail(sf::PrimitiveType::LineStrip, 5);
+    tail[0] = sf::Vertex{{tx, c.y}, dc};
+    tail[1] = sf::Vertex{{tx - dir * 8.0f, c.y - 4.0f}, dc};
+    tail[2] = sf::Vertex{{tx - dir * 14.0f, c.y - 10.0f}, dc};
+    tail[3] = sf::Vertex{{tx - dir * 18.0f, c.y - 8.0f}, sf::Color::Black};
+    tail[4] = sf::Vertex{{tx - dir * 20.0f, c.y - 6.0f}, sf::Color::Black};
+    target.draw(tail);
+
+    // Slim build
+    drawBigCatBase(target, c, dir, dc, 32.0f, 13.0f, 9.0f);
+
+    // Solid spots
+    sf::Color spotC(0, 0, 0, 180);
+    float spotPos[][2] = {{-10.0f, -2.0f}, {-5.0f, 3.0f}, {0.0f, -3.0f},
+                           {5.0f, 2.0f}, {10.0f, -1.0f}, {-8.0f, 4.0f},
+                           {3.0f, 4.0f}, {8.0f, 4.0f}, {-3.0f, -4.0f}};
+    for (auto& sp : spotPos) {
+        sf::CircleShape spot(1.8f);
+        spot.setOrigin({1.8f, 1.8f});
+        spot.setPosition({c.x + sp[0], c.y + sp[1]});
+        spot.setFillColor(spotC);
+        target.draw(spot);
+    }
+
+    sf::Vector2f hc = bigCatHeadCenter(c, dir, 32.0f, 9.0f);
+    // Small ears
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape ear(4.0f);
+        ear.setOrigin({4.0f, 4.0f});
+        ear.setPosition({hc.x + s * 6.0f, hc.y - 8.0f});
+        ear.setFillColor(dc);
+        ear.setOutlineColor(sf::Color::Black);
+        ear.setOutlineThickness(0.5f);
+        target.draw(ear);
+    }
+    // Eyes
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape eye(2.0f);
+        eye.setOrigin({2.0f, 2.0f});
+        eye.setPosition({hc.x + dir * 3.0f + s * 3.0f, hc.y - 1.0f});
+        eye.setFillColor(sf::Color(200, 170, 50));
+        target.draw(eye);
+        sf::CircleShape pupil(1.0f);
+        pupil.setOrigin({1.0f, 1.0f});
+        pupil.setPosition({hc.x + dir * 3.5f + s * 3.0f, hc.y - 1.0f});
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
+    }
+    // Tear lines (distinctive cheetah feature)
+    for (float s : {-1.0f, 1.0f}) {
+        sf::VertexArray tear(sf::PrimitiveType::LineStrip, 3);
+        tear[0] = sf::Vertex{{hc.x + dir * 2.0f + s * 2.0f, hc.y + 1.0f}, sf::Color::Black};
+        tear[1] = sf::Vertex{{hc.x + dir * 3.0f + s * 1.5f, hc.y + 6.0f}, sf::Color::Black};
+        tear[2] = sf::Vertex{{hc.x + dir * 5.0f + s * 1.0f, hc.y + 9.0f}, sf::Color::Black};
+        target.draw(tear);
+    }
+    // Nose
+    sf::CircleShape nose(1.5f);
+    nose.setOrigin({1.5f, 1.5f});
+    nose.setPosition({hc.x + dir * 6.0f, hc.y + 2.0f});
+    nose.setFillColor(sf::Color(60, 40, 30));
+    target.draw(nose);
+    // Whiskers
+    for (float wy : {-1.0f, 1.0f}) {
+        sf::VertexArray w(sf::PrimitiveType::Lines, 2);
+        w[0] = sf::Vertex{{hc.x + dir * 7.0f, hc.y + 3.0f + wy * 2.0f}, sf::Color::Black};
+        w[1] = sf::Vertex{{hc.x + dir * 18.0f, hc.y + 3.0f + wy * 4.0f}, sf::Color::Black};
+        target.draw(w);
     }
 }
 
@@ -1146,7 +1645,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
     float prog = 1.0f - (m_attackAnimTimer / 0.2f);
 
     if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::StickLady) {
-        // Purse swing attack — wide arc with purse trail
+        // Purse swing attack -- wide arc with purse trail
         float swingAngle = -120.0f + 240.0f * prog; // big swing arc
         float swingRad = swingAngle * 3.14159f / 180.0f;
         float swingR = m_weapon.range * PPM * 0.5f;
@@ -1194,7 +1693,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
             }
         }
     } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Crocodile) {
-        // Jaw snap effect — closing jaws with impact lines
+        // Jaw snap effect -- closing jaws with impact lines
         float snapProg = prog; // 0 = start, 1 = fully snapped
         float jawAngle = (1.0f - std::abs(snapProg * 2.0f - 1.0f)) * 25.0f; // opens then snaps
 
@@ -1231,7 +1730,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
             }
         }
     } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Unicorn) {
-        // Magical horn blast — expanding rainbow ring
+        // Magical horn blast -- expanding rainbow ring
         float arcR = m_weapon.range * PPM * 0.7f * prog;
         constexpr int particles = 12;
         for (int i = 0; i < particles; i++) {
@@ -1259,6 +1758,39 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
         flash.setPosition({sp.x + dir * 15.0f, sp.y - 15.0f});
         flash.setFillColor(sf::Color(255, 255, 255, static_cast<uint8_t>(180 * (1.0f - prog))));
         target.draw(flash);
+    } else if (m_weapon.type == WeaponType::Melee && isBigCat(m_charType)) {
+        // Claw slash effect -- three parallel scratch lines
+        float slashR = m_weapon.range * PPM * 0.55f;
+        uint8_t alpha = static_cast<uint8_t>(255 * (1.0f - prog));
+        sf::Color clawColor(255, 230, 180, alpha);
+        for (int c = -1; c <= 1; c++) {
+            float offsetY = static_cast<float>(c) * 5.0f;
+            float startAngle = (-30.0f + 60.0f * prog) * 3.14159f / 180.0f;
+            sf::VertexArray claw(sf::PrimitiveType::LineStrip, 5);
+            for (int j = 0; j < 5; j++) {
+                float t = static_cast<float>(j) / 4.0f;
+                float a = startAngle - t * 1.2f;
+                float cx = sp.x + dir * std::cos(a) * slashR;
+                float cy = sp.y - std::sin(a) * slashR + offsetY;
+                claw[j] = sf::Vertex{{cx, cy}, clawColor};
+            }
+            target.draw(claw);
+        }
+        // Impact sparks
+        if (prog > 0.3f) {
+            int sparkCount = static_cast<int>((prog - 0.3f) * 6);
+            for (int s = 0; s < sparkCount; s++) {
+                float sa = static_cast<float>(s) * 1.1f + m_animTime * 5.0f;
+                float sr = slashR * 0.3f * prog;
+                float sx = sp.x + dir * slashR * 0.8f + std::cos(sa) * sr;
+                float sy = sp.y - 5.0f + std::sin(sa) * sr;
+                sf::CircleShape spark(1.5f * (1.0f - prog));
+                spark.setOrigin({1.5f * (1.0f - prog), 1.5f * (1.0f - prog)});
+                spark.setPosition({sx, sy});
+                spark.setFillColor(sf::Color(255, 200, 100, alpha));
+                target.draw(spark);
+            }
+        }
     } else if (m_weapon.type == WeaponType::Melee) {
         float arcR = m_weapon.range * PPM * 0.6f;
         int segs = 8;

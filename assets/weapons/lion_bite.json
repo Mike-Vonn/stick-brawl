@@ -1,0 +1,10 @@
+{
+    "name": "Lion Bite",
+    "type": "melee",
+    "damage": 20,
+    "knockback_force": 14.0,
+    "range": 2.2,
+    "attack_rate_seconds": 0.6,
+    "env_damage_radius": 0.3,
+    "description": "A powerful bite from the king of the jungle. High knockback."
+}
