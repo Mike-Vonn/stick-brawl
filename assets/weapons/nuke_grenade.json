@@ -1,5 +1,6 @@
 {
     "name": "Nuclear Hand Grenade",
+    "spawnable": true,
     "type": "explosive",
     "damage": 80,
     "knockback_force": 40.0,

@@ -1169,17 +1169,11 @@ void Game::updateWeaponSpawns(float dt) {
     const auto& rules = m_rulesEngine.getRules();
     m_weaponSpawnTimer -= dt;
     if (m_weaponSpawnTimer <= 0.0f && static_cast<int>(m_pickups.size()) < rules.weaponSpawnMax) {
+        const WeaponData* spawnable = m_weaponFactory.getRandomSpawnableWeapon();
+        if (!spawnable) return;
         WeaponPickup pickup;
         pickup.position = m_arena.getRandomPlatformTop();
-        // Don't spawn innate character weapons as pickups
-        do {
-            pickup.weapon = m_weaponFactory.getRandomWeapon();
-        } while (pickup.weapon.name == "Fists" || pickup.weapon.name == "Poison Spit"
-                 || pickup.weapon.name == "Horn Blast" || pickup.weapon.name == "Jaw Snap"
-                 || pickup.weapon.name == "Purse Swing"
-                 || pickup.weapon.name == "Lion Bite" || pickup.weapon.name == "Tiger Claw"
-                 || pickup.weapon.name == "Jaguar Bite" || pickup.weapon.name == "Panther Slash"
-                 || pickup.weapon.name == "Cheetah Strike");
+        pickup.weapon = *spawnable;
         pickup.alive = true;
         pickup.bobTimer = 0.0f;
         m_pickups.push_back(pickup);

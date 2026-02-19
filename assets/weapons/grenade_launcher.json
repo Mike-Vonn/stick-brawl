@@ -1,5 +1,6 @@
 {
     "name": "Grenade Launcher",
+    "spawnable": true,
     "type": "explosive",
     "damage": 50,
     "knockback_force": 25.0,
