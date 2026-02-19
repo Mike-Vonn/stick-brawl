@@ -148,9 +148,13 @@ void Game::renderCharSelect() {
     static bool fontLoaded = false;
     if (!fontLoaded) {
         const char* fontPaths[] = {
+#ifdef _WIN32
             "C:/Windows/Fonts/arial.ttf",
             "C:/Windows/Fonts/consola.ttf",
+#else
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+#endif
             "assets/fonts/default.ttf",
         };
         for (const char* path : fontPaths) {
