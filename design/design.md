@@ -17,15 +17,17 @@ A 2D local multiplayer stick figure fighting game. Players select characters, sp
 
 Update order matters:
 1. `handlePlayerInput(dt)` — reads input, triggers attacks/movement
-2. `player->update(dt)` — per-player tick (cooldowns, poison, respawn timer)
+2. `player->update(dt)` — per-player tick (cooldowns, poison, burn, respawn timer)
 3. `m_physics.step(dt)` — Box2D world step
-4. `updateProjectiles(dt)` — move/collide/detonate projectiles
+4. `updateProjectiles(dt)` — move/collide/detonate projectiles, ignite flammable platforms
 5. `updateWeaponPickups(dt)` — pickup collision checks
-6. `checkFallDeath()` — off-screen kills
-7. `checkPlayerDeaths()` — detect death transitions, spawn death anims, handle lives/respawn
-8. `m_deathAnims.update(dt)` / `cleanup()` — tick and GC death effects
-9. `updateWeaponSpawns(dt)` — periodic weapon drops
-10. `checkRoundEnd()` — check win condition
+6. `m_arena.updateFire(dt)` — spread fire, destroy burnt platforms
+7. Burning platform contact damage — apply burn DOT to players standing on fire
+8. `checkFallDeath()` — off-screen kills
+9. `checkPlayerDeaths()` — detect death transitions, spawn death anims, handle lives/respawn
+10. `m_deathAnims.update(dt)` / `cleanup()` — tick and GC death effects
+11. `updateWeaponSpawns(dt)` — periodic weapon drops
+12. `checkRoundEnd()` — check win condition
 
 **Invariant**: `checkPlayerDeaths()` must run after all damage sources (projectiles, melee, falls) and before `checkRoundEnd()`. The `m_wasAlive` vector tracks per-frame alive state to detect death transitions exactly once.
 
