@@ -9,8 +9,10 @@ static sf::Vector2f toScreen(b2Vec2 pos) {
 // ─── Blood burst helper ──────────────────────────────────────────────
 void DeathAnimationSystem::spawnBloodBurst(DeathEffect& fx, float cx, float cy,
                                            int count, float speed, sf::Color color) {
+    // Convert pixel-space speed to world-space (meters/sec)
+    float worldSpeed = speed / PPM;
     std::uniform_real_distribution<float> angleDist(0.0f, 6.283f);
-    std::uniform_real_distribution<float> speedDist(speed * 0.3f, speed);
+    std::uniform_real_distribution<float> speedDist(worldSpeed * 0.3f, worldSpeed);
     std::uniform_real_distribution<float> sizeDist(1.0f, 3.5f);
     std::uniform_real_distribution<float> lifeDist(0.5f, 1.5f);
 
@@ -85,6 +87,7 @@ void DeathAnimationSystem::spawnDismember(Physics& physics, DeathEffect& fx,
 
     float dir = (kbX >= 0.0f) ? 1.0f : -1.0f;
     int choice = partChoice(m_rng);
+    fx.dismemberedPart = choice;
 
     // Spawn the flying detached part as a physics gib
     auto spawnGibBody = [&](float offX, float offY, float hw, float hh,
@@ -200,7 +203,7 @@ void DeathAnimationSystem::spawnExplode(Physics& physics, DeathEffect& fx,
 void DeathAnimationSystem::spawnDisintegrate(DeathEffect& fx) {
     // No physics gibs — just a massive particle cloud
     std::uniform_real_distribution<float> angleDist(0.0f, 6.283f);
-    std::uniform_real_distribution<float> speedDist(30.0f, 200.0f);
+    std::uniform_real_distribution<float> speedDist(30.0f / PPM, 200.0f / PPM);
     std::uniform_real_distribution<float> sizeDist(1.0f, 4.0f);
     std::uniform_real_distribution<float> lifeDist(0.5f, 2.0f);
 
@@ -252,8 +255,8 @@ void DeathAnimationSystem::update(float dt) {
             p.lifetime -= dt;
             if (p.lifetime <= 0.0f) { p.alive = false; continue; }
 
-            // Simple gravity for particles (screen space, so Y inverted)
-            p.vy -= 200.0f * dt;  // gravity pull down in screen coords
+            // Gravity in world space (Y-up, so subtract to pull down)
+            p.vy -= 10.0f * dt;
             p.x += p.vx * dt;
             p.y += p.vy * dt;
         }
@@ -286,30 +289,31 @@ void DeathAnimationSystem::draw(sf::RenderTarget& target) const {
 
         // Draw collapse body (for Collapse and Dismember)
         if (fx.type == DeathAnimType::Collapse || fx.type == DeathAnimType::Dismember) {
-            drawCollapse(target, fx);
+            drawCollapse(target, fx, alpha);
         }
 
         // Draw physics gibs
         for (const auto& g : fx.gibs) {
             if (!g.alive) continue;
-            drawGib(target, g);
+            drawGib(target, g, alpha);
         }
 
         // Draw particles
-        drawParticles(target, fx);
+        drawParticles(target, fx, alpha);
     }
 }
 
-void DeathAnimationSystem::drawGib(sf::RenderTarget& target, const Gib& gib) const {
+void DeathAnimationSystem::drawGib(sf::RenderTarget& target, const Gib& gib, float effectAlpha) const {
+    if (!b2Body_IsValid(gib.bodyId)) return;
     b2Vec2 pos = b2Body_GetPosition(gib.bodyId);
     b2Rot rot = b2Body_GetRotation(gib.bodyId);
     float angle = std::atan2(rot.s, rot.c);
 
     sf::Vector2f sp = toScreen(pos);
 
-    // Fade based on lifetime
+    // Fade based on lifetime, multiplied by overall effect fade-out
     float lifeRatio = gib.lifetime / gib.maxLifetime;
-    uint8_t a = static_cast<uint8_t>(255.0f * std::min(1.0f, lifeRatio * 2.0f));
+    uint8_t a = static_cast<uint8_t>(255.0f * std::min(1.0f, lifeRatio * 2.0f) * effectAlpha);
     sf::Color c = gib.color;
     c.a = a;
 
@@ -351,11 +355,9 @@ void DeathAnimationSystem::drawGib(sf::RenderTarget& target, const Gib& gib) con
     }
 }
 
-void DeathAnimationSystem::drawCollapse(sf::RenderTarget& target, const DeathEffect& fx) const {
+void DeathAnimationSystem::drawCollapse(sf::RenderTarget& target, const DeathEffect& fx, float effectAlpha) const {
     // Draw a simplified stick figure that's rotating to fallen position
-    float remaining = fx.duration - fx.timer;
-    float alpha = (remaining < 0.5f) ? remaining / 0.5f : 1.0f;
-    uint8_t a = static_cast<uint8_t>(255.0f * alpha);
+    uint8_t a = static_cast<uint8_t>(255.0f * effectAlpha);
     sf::Color c(fx.playerColor.r, fx.playerColor.g, fx.playerColor.b, a);
 
     sf::Vector2f center = toScreen({fx.x, fx.y});
@@ -391,8 +393,9 @@ void DeathAnimationSystem::drawCollapse(sf::RenderTarget& target, const DeathEff
     // Torso line
     drawLine(tBot, tTop);
 
-    // Head (only for Collapse, Dismember may have lost it)
-    if (fx.type == DeathAnimType::Collapse) {
+    // Head — draw unless it was the dismembered part
+    bool headDetached = (fx.type == DeathAnimType::Dismember && fx.dismemberedPart == 0);
+    if (!headDetached) {
         sf::Vector2f headPos = rotPoint(0.0f, -bodyH * 2.0f - headR);
         sf::CircleShape head(headR);
         head.setOrigin({headR, headR});
@@ -414,7 +417,7 @@ void DeathAnimationSystem::drawCollapse(sf::RenderTarget& target, const DeathEff
         target.draw(x1);
         target.draw(x2);
     } else {
-        // Dismember — draw blood stump at neck
+        // Head was detached — draw blood stump at neck
         sf::Vector2f neckPos = rotPoint(0.0f, -bodyH * 2.0f);
         sf::CircleShape stump(3.0f);
         stump.setOrigin({3.0f, 3.0f});
@@ -423,12 +426,22 @@ void DeathAnimationSystem::drawCollapse(sf::RenderTarget& target, const DeathEff
         target.draw(stump);
     }
 
-    // Arms — shoulder is at tTop area
+    // Arms — shoulder is at tTop area, skip the detached arm
     sf::Vector2f shoulder = rotPoint(0.0f, -bodyH * 1.5f);
     sf::Vector2f lArm = rotPoint(-limbLen, -bodyH * 1.2f);
     sf::Vector2f rArm = rotPoint(limbLen, -bodyH * 1.2f);
-    drawLine(shoulder, lArm);
-    drawLine(shoulder, rArm);
+    bool lArmDetached = (fx.type == DeathAnimType::Dismember && fx.dismemberedPart == 1);
+    bool rArmDetached = (fx.type == DeathAnimType::Dismember && fx.dismemberedPart == 2);
+    if (!lArmDetached) drawLine(shoulder, lArm);
+    if (!rArmDetached) drawLine(shoulder, rArm);
+    // Draw stump at shoulder for detached arm
+    if (lArmDetached || rArmDetached) {
+        sf::CircleShape stump(2.5f);
+        stump.setOrigin({2.5f, 2.5f});
+        stump.setPosition(shoulder);
+        stump.setFillColor(sf::Color(180, 0, 0, a));
+        target.draw(stump);
+    }
 
     // Legs
     sf::Vector2f lLeg = rotPoint(-limbLen * 0.5f, limbLen * 0.6f);
@@ -437,19 +450,14 @@ void DeathAnimationSystem::drawCollapse(sf::RenderTarget& target, const DeathEff
     drawLine(tBot, rLeg);
 }
 
-void DeathAnimationSystem::drawParticles(sf::RenderTarget& target, const DeathEffect& fx) const {
+void DeathAnimationSystem::drawParticles(sf::RenderTarget& target, const DeathEffect& fx, float effectAlpha) const {
     for (const auto& p : fx.particles) {
         if (!p.alive) continue;
 
         float lifeRatio = p.lifetime / p.maxLifetime;
-        uint8_t a = static_cast<uint8_t>(p.color.a * lifeRatio);
+        uint8_t a = static_cast<uint8_t>(p.color.a * lifeRatio * effectAlpha);
 
-        // Particles are in screen-pixel space
         sf::Vector2f screenPos = toScreen({p.x, p.y});
-
-        // Wait — particles are updated in world space, convert properly
-        // Actually, let's keep particles in screen pixel space for simplicity
-        // We stored world coords, so convert
         sf::CircleShape dot(p.size);
         dot.setOrigin({p.size, p.size});
         dot.setPosition(screenPos);

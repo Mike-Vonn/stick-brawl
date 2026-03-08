@@ -53,6 +53,9 @@ struct DeathEffect {
     float collapseAngle = 0.0f;
     float collapseVelY = 0.0f;
     bool collapseLanded = false;
+
+    // For dismember: which part was detached (0=head, 1=left arm, 2=right arm)
+    int dismemberedPart = -1;
 };
 
 class DeathAnimationSystem {
@@ -74,9 +77,9 @@ private:
     void spawnExplode(Physics& physics, DeathEffect& fx, float kbX, float kbY);
     void spawnDisintegrate(DeathEffect& fx);
 
-    void drawGib(sf::RenderTarget& target, const Gib& gib) const;
-    void drawCollapse(sf::RenderTarget& target, const DeathEffect& fx) const;
-    void drawParticles(sf::RenderTarget& target, const DeathEffect& fx) const;
+    void drawGib(sf::RenderTarget& target, const Gib& gib, float effectAlpha) const;
+    void drawCollapse(sf::RenderTarget& target, const DeathEffect& fx, float effectAlpha) const;
+    void drawParticles(sf::RenderTarget& target, const DeathEffect& fx, float effectAlpha) const;
 
     void spawnBloodBurst(DeathEffect& fx, float cx, float cy, int count,
                          float speed, sf::Color color);
