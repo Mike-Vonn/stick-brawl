@@ -41,6 +41,7 @@ static CharacterType indexToType(int idx) {
         case 3: return CharacterType::Unicorn;
         case 4: return CharacterType::Crocodile;
         case 5: return CharacterType::StickLady;
+        case 6: return CharacterType::Dragon;
         default: return CharacterType::Stick;
     }
 }
@@ -509,6 +510,102 @@ void Game::renderCharSelect() {
                 win.draw(slPurse);
                 break;
             }
+            case CharacterType::Dragon: {
+                // Body (elongated)
+                sf::ConvexShape dBody(6);
+                dBody.setPoint(0, {cx - 20.0f, previewY - 4.0f});
+                dBody.setPoint(1, {cx + 10.0f, previewY - 7.0f});
+                dBody.setPoint(2, {cx + 18.0f, previewY - 3.0f});
+                dBody.setPoint(3, {cx + 18.0f, previewY + 6.0f});
+                dBody.setPoint(4, {cx - 8.0f, previewY + 8.0f});
+                dBody.setPoint(5, {cx - 20.0f, previewY + 4.0f});
+                dBody.setFillColor(pc);
+                dBody.setOutlineColor(sf::Color::Black);
+                dBody.setOutlineThickness(1.0f);
+                win.draw(dBody);
+
+                // Head (angular)
+                sf::ConvexShape dHead(5);
+                dHead.setPoint(0, {cx + 18.0f, previewY - 6.0f});
+                dHead.setPoint(1, {cx + 38.0f, previewY - 4.0f});
+                dHead.setPoint(2, {cx + 40.0f, previewY});
+                dHead.setPoint(3, {cx + 36.0f, previewY + 3.0f});
+                dHead.setPoint(4, {cx + 18.0f, previewY + 2.0f});
+                dHead.setFillColor(pc);
+                dHead.setOutlineColor(sf::Color::Black);
+                dHead.setOutlineThickness(1.0f);
+                win.draw(dHead);
+
+                // Horns
+                for (float hs : {-1.0f, 1.0f}) {
+                    sf::ConvexShape horn(3);
+                    horn.setPoint(0, {cx + 22.0f + hs * 3.0f, previewY - 6.0f});
+                    horn.setPoint(1, {cx + 18.0f + hs * 2.0f, previewY - 16.0f});
+                    horn.setPoint(2, {cx + 26.0f + hs * 3.0f, previewY - 7.0f});
+                    horn.setFillColor(sf::Color(180, 160, 100));
+                    win.draw(horn);
+                }
+
+                // Wings (bat-like)
+                sf::ConvexShape wing(4);
+                wing.setPoint(0, {cx - 8.0f, previewY - 4.0f});
+                wing.setPoint(1, {cx - 5.0f, previewY - 30.0f});
+                wing.setPoint(2, {cx + 10.0f, previewY - 25.0f});
+                wing.setPoint(3, {cx + 5.0f, previewY - 2.0f});
+                wing.setFillColor(sf::Color(pc.r * 3 / 4, pc.g * 3 / 4, pc.b * 3 / 4, 180));
+                win.draw(wing);
+
+                // Eye
+                sf::CircleShape dEye(2.0f);
+                dEye.setOrigin({2.0f, 2.0f});
+                dEye.setPosition({cx + 26.0f, previewY - 5.0f});
+                dEye.setFillColor(sf::Color(255, 180, 0));
+                win.draw(dEye);
+
+                // Spines along back
+                for (int si = 0; si < 5; si++) {
+                    float sx = cx - 14.0f + static_cast<float>(si) * 6.0f;
+                    sf::ConvexShape spine(3);
+                    spine.setPoint(0, {sx - 1.5f, previewY - 5.0f});
+                    spine.setPoint(1, {sx, previewY - 12.0f});
+                    spine.setPoint(2, {sx + 1.5f, previewY - 5.0f});
+                    spine.setFillColor(sf::Color(pc.r * 3 / 4, pc.g * 3 / 4, pc.b * 3 / 4));
+                    win.draw(spine);
+                }
+
+                // Tail (animated)
+                sf::VertexArray dTail(sf::PrimitiveType::LineStrip, 5);
+                float dT = m_selectAnimTimer;
+                for (int ti = 0; ti < 5; ti++) {
+                    float tf = static_cast<float>(ti) / 4.0f;
+                    float wave = std::sin(dT * 2.0f + tf * 3.0f) * 4.0f * tf;
+                    dTail[ti] = sf::Vertex{{cx - 20.0f - tf * 18.0f, previewY + wave}, pc};
+                }
+                win.draw(dTail);
+
+                // Legs
+                for (float lx : {-0.2f, 0.0f, 0.2f, 0.4f}) {
+                    sf::VertexArray dLeg(sf::PrimitiveType::Lines, 2);
+                    dLeg[0] = sf::Vertex{{cx + lx * 35.0f, previewY + 6.0f}, pc};
+                    dLeg[1] = sf::Vertex{{cx + lx * 35.0f, previewY + 16.0f}, pc};
+                    win.draw(dLeg);
+                }
+
+                // Fire breath hint
+                for (int fi = 0; fi < 3; fi++) {
+                    float ff = static_cast<float>(fi) / 3.0f;
+                    float fx = cx + 40.0f + ff * 12.0f;
+                    float fy = previewY - 2.0f + std::sin(m_selectAnimTimer * 6.0f + ff * 4.0f) * 3.0f;
+                    float fsz = 2.5f - ff * 0.8f;
+                    sf::CircleShape fireDot(fsz);
+                    fireDot.setOrigin({fsz, fsz});
+                    fireDot.setPosition({fx, fy});
+                    uint8_t fg = static_cast<uint8_t>(150 - ff * 100);
+                    fireDot.setFillColor(sf::Color(255, fg, 0, static_cast<uint8_t>(200 - ff * 80)));
+                    win.draw(fireDot);
+                }
+                break;
+            }
         }
 
         // Ready indicator
@@ -609,6 +706,9 @@ void Game::startGame() {
         } else if (ct == CharacterType::StickLady) {
             auto* purse = m_weaponFactory.getWeapon("Purse Swing");
             if (purse) p->equipWeapon(*purse);
+        } else if (ct == CharacterType::Dragon) {
+            auto* fire = m_weaponFactory.getWeapon("Fire Breath");
+            if (fire) p->equipWeapon(*fire);
         }
 
         m_players.push_back(std::move(p));
@@ -692,6 +792,17 @@ void Game::update(float dt) {
     m_physics.step(dt);
     updateProjectiles(dt);
     updateWeaponPickups(dt);
+    m_arena.updateFire(m_physics, dt);
+
+    // Burning platform contact damage
+    for (auto& player : m_players) {
+        if (!player->isAlive()) continue;
+        b2Vec2 pos = player->getPosition();
+        if (m_arena.getBurningPlatformAt(pos.x, pos.y) >= 0 && !player->isBurning()) {
+            player->applyBurn(4.0f, 2.0f);
+        }
+    }
+
     checkFallDeath();
     checkPlayerDeaths();
     m_deathAnims.update(dt);
@@ -823,6 +934,11 @@ void Game::spawnProjectile(StickFigure& shooter) {
             proj.poisonDps = weapon.poisonDps;
             proj.poisonDuration = weapon.poisonDuration;
         }
+        if (weapon.burnDps > 0.0f && weapon.burnDuration > 0.0f) {
+            proj.isBurn = true;
+            proj.burnDps = weapon.burnDps;
+            proj.burnDuration = weapon.burnDuration;
+        }
 
         m_projectiles.push_back(proj);
     }
@@ -870,6 +986,20 @@ void Game::updateProjectiles(float dt) {
             float envR = proj.weapon.envDamageRadius;
             if (envR <= 0.0f) envR = proj.weapon.damage * 0.015f;
             m_arena.carveCircle(m_physics, pp.x, pp.y, envR);
+
+            // Fire projectiles ignite flammable platforms
+            if (proj.isBurn) {
+                const auto& platforms = m_arena.getPlatforms();
+                for (size_t pi2 = 0; pi2 < platforms.size(); pi2++) {
+                    const auto& plat = platforms[pi2];
+                    if (!plat.alive) continue;
+                    if (std::abs(pp.x - plat.cx) < plat.halfWidth + 0.5f &&
+                        std::abs(pp.y - plat.cy) < plat.halfHeight + 0.5f) {
+                        m_arena.ignitePlatform(pi2);
+                    }
+                }
+            }
+
             proj.alive = false;
             continue;
         }
@@ -888,7 +1018,14 @@ void Game::updateProjectiles(float dt) {
             float checkR = isExplosive ? (shouldDetonate ? hitR : 0.6f) : 0.6f;
 
             if (dist < checkR) {
-                if (proj.isPoison) {
+                if (proj.isBurn) {
+                    float dmg = proj.weapon.damage * rules.damageMultiplier;
+                    float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
+                    float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
+                    float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
+                    player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type);
+                    player->applyBurn(proj.burnDps, proj.burnDuration);
+                } else if (proj.isPoison) {
                     player->takeDamage(5.0f, 0.0f, 0.0f, "Poison Spit", WeaponType::Projectile);
                     player->applyPoison(proj.poisonDps, proj.poisonDuration);
                 } else {
@@ -991,7 +1128,7 @@ void Game::updateWeaponSpawns(float dt) {
             pickup.weapon = m_weaponFactory.getRandomWeapon();
         } while (pickup.weapon.name == "Fists" || pickup.weapon.name == "Poison Spit"
                  || pickup.weapon.name == "Horn Blast" || pickup.weapon.name == "Jaw Snap"
-                 || pickup.weapon.name == "Purse Swing");
+                 || pickup.weapon.name == "Purse Swing" || pickup.weapon.name == "Fire Breath");
         pickup.alive = true;
         pickup.bobTimer = 0.0f;
         m_pickups.push_back(pickup);
@@ -1190,6 +1327,18 @@ void Game::render() {
             ring.setOutlineColor(sf::Color(255, 255, 0, static_cast<uint8_t>(80 * pulse)));
             ring.setOutlineThickness(1.0f);
             m_renderer.getWindow().draw(ring);
+        } else if (proj.isBurn) {
+            float flicker = std::sin(proj.lifetime * 20.0f) * 0.3f + 0.7f;
+            float sz = 3.0f * flicker;
+            sf::CircleShape c(sz); c.setOrigin({sz, sz});
+            c.setPosition(sp);
+            c.setFillColor(sf::Color(255, static_cast<uint8_t>(120 * flicker), 0, 220));
+            m_renderer.getWindow().draw(c);
+            sf::CircleShape glow(sz + 2.0f);
+            glow.setOrigin({sz + 2.0f, sz + 2.0f});
+            glow.setPosition(sp);
+            glow.setFillColor(sf::Color(255, 200, 0, 60));
+            m_renderer.getWindow().draw(glow);
         } else if (proj.isPoison) {
             sf::CircleShape c(4.0f); c.setOrigin({4.0f, 4.0f});
             c.setPosition(sp);

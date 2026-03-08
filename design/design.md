@@ -35,7 +35,7 @@ Update order matters:
 - Each `StickFigure` is a multi-body ragdoll: head, torso, arms, legs connected by joints
 
 ### Characters
-Six types: Stick, Cat, Cobra, Unicorn, Crocodile, StickLady. Each has a custom `draw*()` method. Character type is cosmetic only (no gameplay differences currently).
+Seven types: Stick, Cat, Cobra, Unicorn, Crocodile, StickLady, Dragon. Each has a custom `draw*()` method. Some characters have innate weapons (Cobra=Poison Spit, Unicorn=Horn Blast, Crocodile=Jaw Snap, StickLady=Purse Swing, Dragon=Fire Breath). These innate weapons are excluded from random weapon spawns.
 
 ### Weapons
 Loaded from JSON files in `assets/weapons/`. Three types:
@@ -43,8 +43,21 @@ Loaded from JSON files in `assets/weapons/`. Three types:
 - **Projectile** — spawns physics body, travels, hits on proximity
 - **Explosive** — projectile that detonates on contact/timer, area damage + terrain carving
 
+### Status Effects (DOT)
+Two independent DOT systems on `StickFigure`, can stack simultaneously:
+- **Poison** — green particles, ticks every 0.5s, applied by Cobra's Poison Spit
+- **Burn** — orange flame particles, ticks every 0.5s, applied by Dragon's Fire Breath or standing on burning platforms
+
+Both are cleared on respawn. Each has its own timer, DPS, and tick timer fields.
+
 ### Arena / Terrain
-Destructible terrain via `Arena::carveCircle()`. Platforms are Box2D static bodies.
+Destructible terrain via `Arena::carveCircle()`. Platforms are Box2D static bodies. Platform types: Ground, Wood, Stone, Metal, Brick, Roof.
+
+**Fire system**: Wood and Roof platforms are flammable. Fire projectiles hitting a flammable platform ignite it. Burning platforms:
+- Deal burn DOT to players standing on them
+- Spread fire to adjacent flammable platforms after 1.5s (proximity < 1.0m gap)
+- Collapse (destroyed) after 5 seconds of burning
+- Render with orange overlay + flickering flame particles
 
 ### Death Animation System
 `DeathAnimationSystem` manages post-death visual effects. Four types:

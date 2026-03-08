@@ -7,3 +7,5 @@
 - **B3.** **Fade-out alpha computed but unused** — Added `effectAlpha` parameter to `drawGib()`, `drawCollapse()`, and `drawParticles()`. The overall effect fade-out (last 0.5s) now multiplies into all sub-element alphas. Removed `drawCollapse`'s redundant internal alpha calculation.
 
 - **B4.** **drawGib crash on destroyed physics body** — Added `b2Body_IsValid()` guard at the top of `drawGib()`, returning early if the body has been destroyed.
+
+- **F1.** **Dragon character with fire breath** — Added quadruped Dragon character (CHARACTER_TYPE_COUNT now 7) with `drawDragon()` featuring wings, spines, horned head, tail, and fire breath visual. Fire Breath weapon: 5-pellet cone, 30° spread, no gravity, burn DOT (6 DPS for 3s). Burn DOT system added parallel to poison (separate timers, can stack). Terrain fire system: Wood and Roof platforms catch fire from fire projectiles, fire spreads to adjacent flammable platforms after 1.5s, platforms collapse after 5s of burning. Players standing on burning platforms also catch fire.

@@ -1,0 +1,18 @@
+{
+    "name": "Fire Breath",
+    "type": "projectile",
+    "damage": 3,
+    "knockback_force": 3.0,
+    "range": 40.0,
+    "attack_rate_seconds": 0.6,
+    "projectile_speed": 22.0,
+    "projectile_lifetime_seconds": 0.35,
+    "ammo": -1,
+    "spread_degrees": 30,
+    "pellet_count": 5,
+    "affected_by_gravity": false,
+    "env_damage_radius": 0.1,
+    "burn_dps": 6.0,
+    "burn_duration": 3.0,
+    "description": "Cone of fire that ignites targets (6 DPS for 3 seconds)"
+}

@@ -428,4 +428,109 @@ void Arena::draw(sf::RenderTarget& target) const {
             }
         }
     }
+
+    // Fire overlays on burning platforms
+    for (const auto& p : m_platforms) {
+        if (!p.alive || !p.onFire) continue;
+
+        float w = p.halfWidth * 2.0f * PPM;
+        float h = p.halfHeight * 2.0f * PPM;
+        sf::Vector2f tl = toScreen(p.cx - p.halfWidth, p.cy + p.halfHeight);
+
+        // Flickering orange overlay
+        float flicker = std::sin(p.fireTimer * 10.0f) * 0.15f + 0.85f;
+        sf::RectangleShape fireOverlay({w, h});
+        fireOverlay.setPosition(tl);
+        fireOverlay.setFillColor(sf::Color(255, 120, 0,
+            static_cast<uint8_t>(80 * flicker)));
+        target.draw(fireOverlay);
+
+        // Flame particles above the platform
+        int flameCount = std::max(2, static_cast<int>(w / 8.0f));
+        for (int fi = 0; fi < flameCount; fi++) {
+            float frac = static_cast<float>(fi) / static_cast<float>(flameCount);
+            float phase = p.fireTimer * 8.0f + frac * 12.0f;
+            float fx = tl.x + frac * w;
+            float fy = tl.y - std::abs(std::sin(phase)) * 8.0f - 2.0f;
+            float sz = 2.0f + std::sin(phase * 1.5f) * 1.0f;
+            sf::CircleShape flame(sz);
+            flame.setOrigin({sz, sz});
+            flame.setPosition({fx, fy});
+            uint8_t g = static_cast<uint8_t>(100 + std::sin(phase) * 80);
+            uint8_t alpha = static_cast<uint8_t>(180 + std::sin(phase * 2.0f) * 50);
+            flame.setFillColor(sf::Color(255, g, 0, alpha));
+            target.draw(flame);
+        }
+    }
+}
+
+// ============================================================
+// FIRE SYSTEM
+// ============================================================
+
+bool Arena::isFlammable(PlatformType type) const {
+    return type == PlatformType::Wood || type == PlatformType::Roof;
+}
+
+void Arena::ignitePlatform(size_t index) {
+    if (index >= m_platforms.size()) return;
+    auto& p = m_platforms[index];
+    if (!p.alive || p.onFire || !isFlammable(p.type)) return;
+    p.onFire = true;
+    p.fireTimer = 0.0f;
+}
+
+void Arena::updateFire(Physics& physics, float dt) {
+    std::vector<size_t> toIgnite;
+
+    for (size_t i = 0; i < m_platforms.size(); i++) {
+        auto& p = m_platforms[i];
+        if (!p.alive || !p.onFire) continue;
+
+        p.fireTimer += dt;
+
+        // Fire spread to adjacent flammable platforms after 1.5s
+        if (p.fireTimer > 1.5f) {
+            for (size_t j = 0; j < m_platforms.size(); j++) {
+                if (i == j) continue;
+                auto& other = m_platforms[j];
+                if (!other.alive || other.onFire || !isFlammable(other.type)) continue;
+                float dx = std::abs(p.cx - other.cx) - (p.halfWidth + other.halfWidth);
+                float dy = std::abs(p.cy - other.cy) - (p.halfHeight + other.halfHeight);
+                if (dx < 1.0f && dy < 1.0f) {
+                    toIgnite.push_back(j);
+                }
+            }
+        }
+
+        // Destroy platform after burn duration
+        if (p.fireTimer >= Platform::BURN_DURATION) {
+            b2DestroyBody(p.bodyId);
+            p.alive = false;
+            p.onFire = false;
+        }
+    }
+
+    // Apply fire spread
+    for (size_t idx : toIgnite) {
+        ignitePlatform(idx);
+    }
+
+    // Clean up dead platforms
+    m_platforms.erase(
+        std::remove_if(m_platforms.begin(), m_platforms.end(),
+                        [](const Platform& p) { return !p.alive; }),
+        m_platforms.end());
+}
+
+int Arena::getBurningPlatformAt(float x, float y) const {
+    for (size_t i = 0; i < m_platforms.size(); i++) {
+        const auto& p = m_platforms[i];
+        if (!p.alive || !p.onFire) continue;
+        if (x >= p.cx - p.halfWidth && x <= p.cx + p.halfWidth &&
+            y >= p.cy + p.halfHeight - 0.1f && y <= p.cy + p.halfHeight + 0.8f) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
 }

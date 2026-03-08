@@ -35,6 +35,10 @@ struct WeaponData {
     float       poisonDps = 0.0f;
     float       poisonDuration = 0.0f;
 
+    // Burn (fire damage-over-time)
+    float       burnDps = 0.0f;
+    float       burnDuration = 0.0f;
+
     // Assets
     std::string sprite;
     std::string projectileSprite;

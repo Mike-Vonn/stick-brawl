@@ -17,11 +17,12 @@ enum class CharacterType {
     Cobra,
     Unicorn,
     Crocodile,
-    StickLady
+    StickLady,
+    Dragon
 };
 
 // Number of available character types
-constexpr int CHARACTER_TYPE_COUNT = 6;
+constexpr int CHARACTER_TYPE_COUNT = 7;
 
 inline const char* characterTypeName(CharacterType t) {
     switch (t) {
@@ -31,6 +32,7 @@ inline const char* characterTypeName(CharacterType t) {
         case CharacterType::Unicorn:   return "Unicorn";
         case CharacterType::Crocodile: return "Crocodile";
         case CharacterType::StickLady: return "Stick Lady";
+        case CharacterType::Dragon:    return "Dragon";
     }
     return "???";
 }
@@ -62,6 +64,7 @@ public:
     void takeDamage(float amount, float knockbackX, float knockbackY,
                     const std::string& weaponName, WeaponType weaponType);
     void applyPoison(float dps, float duration);
+    void applyBurn(float dps, float duration);
     void respawn(float x, float y);
 
     // Last weapon that dealt damage (for death animation selection)
@@ -78,6 +81,7 @@ public:
     float getMaxHealth() const { return m_maxHealth; }
     bool  isAlive() const { return m_health > 0.0f; }
     bool  isPoisoned() const { return m_poisonTimer > 0.0f; }
+    bool  isBurning() const { return m_burnTimer > 0.0f; }
     int   getPlayerIndex() const { return m_playerIndex; }
     int   getLives() const { return m_lives; }
     void  setLives(int lives) { m_lives = lives; }
@@ -101,6 +105,7 @@ private:
     void drawUnicorn(sf::RenderTarget& target) const;
     void drawCrocodile(sf::RenderTarget& target) const;
     void drawStickLady(sf::RenderTarget& target) const;
+    void drawDragon(sf::RenderTarget& target) const;
     void drawAttackEffect(sf::RenderTarget& target) const;
     void drawAimIndicator(sf::RenderTarget& target) const;
 
@@ -130,6 +135,11 @@ private:
     float m_poisonTimer = 0.0f;
     float m_poisonDps = 0.0f;
     float m_poisonTickTimer = 0.0f;
+
+    // Burn DOT (fire)
+    float m_burnTimer = 0.0f;
+    float m_burnDps = 0.0f;
+    float m_burnTickTimer = 0.0f;
 
     WeaponData m_weapon;
     int        m_currentAmmo = -1;
