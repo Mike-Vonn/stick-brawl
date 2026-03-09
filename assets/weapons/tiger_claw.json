@@ -1,0 +1,10 @@
+{
+    "name": "Tiger Claw",
+    "type": "melee",
+    "damage": 30,
+    "knockback_force": 12.0,
+    "range": 2.4,
+    "attack_rate_seconds": 0.8,
+    "env_damage_radius": 0.35,
+    "description": "Devastating claw swipe. Slow but hits like a truck."
+}

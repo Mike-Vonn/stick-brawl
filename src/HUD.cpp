@@ -7,9 +7,13 @@ bool HUD::init() {
     // SFML 3: Font constructor takes a path and throws on failure
     // Try multiple font locations
     const char* fontPaths[] = {
+#ifdef _WIN32
         "C:/Windows/Fonts/arial.ttf",
         "C:/Windows/Fonts/consola.ttf",
+#else
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+#endif
         "assets/fonts/default.ttf",
     };
 

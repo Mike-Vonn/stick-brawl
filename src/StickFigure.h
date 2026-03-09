@@ -13,26 +13,54 @@ struct StickFigureConfig {
 
 enum class CharacterType {
     Stick,
-    Cat,
+    Lion,
+    Tiger,
+    Jaguar,
+    Panther,
+    Cheetah,
     Cobra,
     Unicorn,
     Crocodile,
     StickLady
 };
 
-// Number of available character types
-constexpr int CHARACTER_TYPE_COUNT = 6;
+constexpr int CHARACTER_TYPE_COUNT = 10;
 
 inline const char* characterTypeName(CharacterType t) {
     switch (t) {
         case CharacterType::Stick:     return "Stick";
-        case CharacterType::Cat:       return "Cat";
+        case CharacterType::Lion:      return "Lion";
+        case CharacterType::Tiger:     return "Tiger";
+        case CharacterType::Jaguar:    return "Jaguar";
+        case CharacterType::Panther:   return "Panther";
+        case CharacterType::Cheetah:   return "Cheetah";
         case CharacterType::Cobra:     return "Cobra";
         case CharacterType::Unicorn:   return "Unicorn";
         case CharacterType::Crocodile: return "Crocodile";
         case CharacterType::StickLady: return "Stick Lady";
     }
     return "???";
+}
+
+inline const char* characterTypeBlurb(CharacterType t) {
+    switch (t) {
+        case CharacterType::Lion:    return "130 HP | High Knockback";
+        case CharacterType::Tiger:   return "Slow but Strong | +25% DMG";
+        case CharacterType::Jaguar:  return "Wall Climb | Strong Bite";
+        case CharacterType::Panther: return "Wall Climb | Fast & Stealthy";
+        case CharacterType::Cheetah: return "75 HP | Super Fast";
+        default: return "";
+    }
+}
+
+inline bool canWallClimb(CharacterType t) {
+    return t == CharacterType::Jaguar || t == CharacterType::Panther;
+}
+
+inline bool isBigCat(CharacterType t) {
+    return t == CharacterType::Lion || t == CharacterType::Tiger
+        || t == CharacterType::Jaguar || t == CharacterType::Panther
+        || t == CharacterType::Cheetah;
 }
 
 class StickFigure {
@@ -46,7 +74,9 @@ public:
     void jump();
     void stopMoving();
 
-    // Aiming
+    void wallClimbUp();
+    bool isTouchingWall() const;
+
     void aimUp();
     void aimDown();
     void resetAim();
@@ -61,7 +91,7 @@ public:
     void takeDamage(float amount, float knockbackX, float knockbackY);
     void applyPoison(float dps, float duration);
     void respawn(float x, float y);
-    void teleportTo(float x, float y); // preserves velocity (for wrap-around)
+    void teleportTo(float x, float y);
     void startRespawnTimer(float delay, float x, float y);
     bool isWaitingToRespawn() const { return m_waitingToRespawn; }
     void update(float dt);
@@ -76,6 +106,7 @@ public:
     void  setMaxHealth(float hp) { m_maxHealth = hp; m_health = hp; }
     sf::Color getColor() const { return m_color; }
     CharacterType getCharacterType() const { return m_charType; }
+    float getDamageMultiplier() const { return m_damageMultiplier; }
 
     b2Vec2 getPosition() const;
     int getFacingDirection() const { return m_facingDir; }
@@ -87,8 +118,14 @@ public:
 
 private:
     void createBodies(Physics& physics, float spawnX, float spawnY);
+    void applyCharacterStats();
+
     void drawStick(sf::RenderTarget& target) const;
-    void drawCat(sf::RenderTarget& target) const;
+    void drawLion(sf::RenderTarget& target) const;
+    void drawTiger(sf::RenderTarget& target) const;
+    void drawJaguar(sf::RenderTarget& target) const;
+    void drawPanther(sf::RenderTarget& target) const;
+    void drawCheetah(sf::RenderTarget& target) const;
     void drawCobra(sf::RenderTarget& target) const;
     void drawUnicorn(sf::RenderTarget& target) const;
     void drawCrocodile(sf::RenderTarget& target) const;
@@ -109,7 +146,7 @@ private:
     float m_maxHealth = 100.0f;
     int   m_lives = 3;
     int   m_facingDir = 1;
-    float m_aimAngle = 0.0f; // radians, 0=straight, positive=up, negative=down
+    float m_aimAngle = 0.0f;
     float m_attackCooldown = 0.0f;
     float m_attackAnimTimer = 0.0f;
     float m_damageFlashTimer = 0.0f;
@@ -118,19 +155,19 @@ private:
     float m_pendingRespawnX = 0.0f;
     float m_pendingRespawnY = 0.0f;
 
-    // Poison DOT
     float m_poisonTimer = 0.0f;
     float m_poisonDps = 0.0f;
     float m_poisonTickTimer = 0.0f;
 
     WeaponData m_weapon;
+    WeaponData m_innateWeapon;  // character's default weapon, restored on respawn
+    bool       m_hasInnateWeapon = false;
     int        m_currentAmmo = -1;
 
     float m_moveSpeed = 8.0f;
     float m_jumpForce = 12.0f;
+    float m_damageMultiplier = 1.0f;
 
     StickFigureConfig m_config;
-
-    // Animation
     float m_animTime = 0.0f;
 };

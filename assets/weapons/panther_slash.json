@@ -1,0 +1,10 @@
+{
+    "name": "Panther Slash",
+    "type": "melee",
+    "damage": 18,
+    "knockback_force": 11.0,
+    "range": 2.2,
+    "attack_rate_seconds": 0.35,
+    "env_damage_radius": 0.2,
+    "description": "Silent, swift claw attack from the shadows."
+}

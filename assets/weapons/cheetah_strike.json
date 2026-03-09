@@ -1,0 +1,10 @@
+{
+    "name": "Cheetah Strike",
+    "type": "melee",
+    "damage": 12,
+    "knockback_force": 6.0,
+    "range": 2.0,
+    "attack_rate_seconds": 0.2,
+    "env_damage_radius": 0.15,
+    "description": "Lightning-fast claw strikes. Low damage but incredible speed."
+}

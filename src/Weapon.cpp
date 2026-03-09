@@ -35,6 +35,7 @@ WeaponData loadWeaponFromFile(const std::string& path) {
         if (j.contains("explosion_radius"))             w.explosionRadius = j["explosion_radius"];
         if (j.contains("destroys_platforms"))            w.destroysPlatforms = j["destroys_platforms"];
         if (j.contains("env_damage_radius"))             w.envDamageRadius = j["env_damage_radius"];
+        if (j.contains("spawnable"))                      w.spawnable = j["spawnable"];
         if (j.contains("poison_dps"))                   w.poisonDps = j["poison_dps"];
         if (j.contains("poison_duration"))              w.poisonDuration = j["poison_duration"];
         if (j.contains("sprite"))                       w.sprite = j["sprite"];

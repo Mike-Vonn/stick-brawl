@@ -225,6 +225,39 @@ b2Vec2 Arena::getRandomPlatformTop() const {
     return {p.cx + xDist(rng), p.cy + p.halfHeight + 0.5f};
 }
 
+b2Vec2 Arena::getSafeSpawnPoint(int spawnIndex, Physics& physics) const {
+    if (spawnIndex < 0 || spawnIndex >= static_cast<int>(m_spawnPoints.size()))
+        return getRandomPlatformTop();
+
+    b2Vec2 spawn = m_spawnPoints[spawnIndex];
+
+    // Raycast straight down from the spawn point to check for ground
+    b2QueryFilter filter = b2DefaultQueryFilter();
+    filter.categoryBits = CAT_PLAYER;
+    filter.maskBits = CAT_PLATFORM;
+    b2Vec2 origin = {spawn.x, spawn.y};
+    b2Vec2 translation = {0.0f, -8.0f};
+    b2RayResult result = b2World_CastRayClosest(physics.getWorldId(), origin, translation, filter);
+    if (result.hit) {
+        return spawn;
+    }
+
+    // No ground -- find the nearest alive platform and spawn on top of it
+    float bestDist = 1e9f;
+    b2Vec2 bestPos = getRandomPlatformTop();
+    for (const auto& plat : m_platforms) {
+        if (!plat.alive) continue;
+        float dx = plat.cx - spawn.x;
+        float dy = plat.cy - spawn.y;
+        float dist = dx * dx + dy * dy;
+        if (dist < bestDist) {
+            bestDist = dist;
+            bestPos = {plat.cx, plat.cy + plat.halfHeight + 1.0f};
+        }
+    }
+    return bestPos;
+}
+
 // ============================================================
 // WORMS-STYLE TERRAIN CARVING
 // ============================================================
@@ -276,7 +309,7 @@ int Arena::carveCircle(Physics& physics, float ex, float ey, float radius) {
         float dy = ey - closestY;
         if (dx * dx + dy * dy >= radius * radius) continue;
 
-        // This platform IS affected — destroy it
+        // This platform IS affected -- destroy it
         affected++;
         b2DestroyBody(plat.bodyId);
         plat.alive = false;

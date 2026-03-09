@@ -35,6 +35,9 @@ struct WeaponData {
     float       poisonDps = 0.0f;
     float       poisonDuration = 0.0f;
 
+    // Spawning
+    bool        spawnable = false;  // can appear as a random pickup
+
     // Assets
     std::string sprite;
     std::string projectileSprite;

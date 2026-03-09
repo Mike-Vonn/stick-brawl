@@ -1,5 +1,6 @@
 {
     "name": "Pistol",
+    "spawnable": true,
     "type": "projectile",
     "damage": 20,
     "knockback_force": 8.0,

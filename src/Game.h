@@ -22,6 +22,7 @@ struct Projectile {
     bool isPoison = false;
     float poisonDps = 0.0f;
     float poisonDuration = 0.0f;
+    float ownerDamageMultiplier = 1.0f;
 };
 
 struct WeaponPickup {
@@ -32,19 +33,18 @@ struct WeaponPickup {
 };
 
 struct ExplosionEffect {
-    float x, y;              // world position
-    float radius;            // blast radius in meters
-    float timer = 0.0f;      // time since detonation
-    float duration = 1.5f;   // how long the effect lasts
-    bool isNuke = false;     // nuke gets special visuals
+    float x, y;
+    float radius;
+    float timer = 0.0f;
+    float duration = 1.5f;
+    bool isNuke = false;
     bool alive = true;
 };
 
-// Per-player selection state during character select
 struct PlayerSelectState {
     bool joined = false;
     bool ready = false;
-    int  charIndex = 0;  // index into CharacterType enum
+    int  charIndex = 0;
     float previewTimer = 0.0f;
 };
 
@@ -57,14 +57,12 @@ public:
     void run();
 
 private:
-    // Character select
     void processCharSelectEvents();
     void updateCharSelect(float dt);
     void renderCharSelect();
     bool allPlayersReady() const;
     void startGame();
 
-    // Gameplay
     void processEvents();
     void update(float dt);
     void render();
@@ -95,17 +93,18 @@ private:
     std::vector<WeaponPickup> m_pickups;
     std::vector<ExplosionEffect> m_explosions;
 
-    // Character select state
     std::array<PlayerSelectState, MAX_PLAYERS> m_selectState;
+    std::array<bool, MAX_PLAYERS> m_prevSelectLeft = {};
+    std::array<bool, MAX_PLAYERS> m_prevSelectRight = {};
     float m_selectAnimTimer = 0.0f;
     int   m_selectedLevel = 0;
-    bool  m_wrapAround = false;  // fall-through wrap-around mode
+    bool  m_wrapAround = false;
 
     static constexpr sf::Color m_playerColors[MAX_PLAYERS] = {
         sf::Color(100, 180, 255),  // Blue
         sf::Color(255, 100, 100),  // Red
         sf::Color(100, 255, 100),  // Green
         sf::Color(180, 100, 220),  // Purple
-        sf::Color(255, 200, 100),  // Gold (unicorn default)
+        sf::Color(255, 200, 100),  // Gold
     };
 };

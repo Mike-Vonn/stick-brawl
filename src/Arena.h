@@ -31,6 +31,10 @@ public:
 
     b2Vec2 getRandomPlatformTop() const;
 
+    // Returns the original spawn if there's ground beneath it,
+    // otherwise picks the top of the nearest surviving platform.
+    b2Vec2 getSafeSpawnPoint(int spawnIndex, Physics& physics) const;
+
     // Worms-style terrain carving: removes a circular chunk from all platforms
     // Returns number of platforms affected
     int carveCircle(Physics& physics, float cx, float cy, float radius);

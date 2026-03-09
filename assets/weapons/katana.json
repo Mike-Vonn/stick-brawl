@@ -1,5 +1,6 @@
 {
     "name": "Katana",
+    "spawnable": true,
     "type": "melee",
     "damage": 30,
     "knockback_force": 10.0,

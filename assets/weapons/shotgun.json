@@ -1,5 +1,6 @@
 {
     "name": "Shotgun",
+    "spawnable": true,
     "type": "projectile",
     "damage": 8,
     "knockback_force": 12.0,
