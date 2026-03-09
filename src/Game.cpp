@@ -917,16 +917,16 @@ void Game::handlePlayerInput(float dt) {
 
         if (pi.jumpPressed) player->jump();
 
-        // Wall climbing for Jaguar/Panther: aim-up while airborne and touching a wall
-        bool didWallClimb = false;
-        if (canWallClimb(player->getCharacterType()) && pi.aimUp
-            && !player->isOnGround() && player->isTouchingWall()) {
-            player->wallClimbUp();
-            didWallClimb = true;
+        // Wall climbing for Cat/Jaguar/Panther: move toward wall while airborne
+        if (canWallClimb(player->getCharacterType()) && !player->isOnGround()) {
+            int ws = player->wallSide();
+            if ((ws == -1 && pi.moveLeft) || (ws == 1 && pi.moveRight)) {
+                player->wallClimbUp();
+            }
         }
 
-        // Aiming (skip aim-up when wall climbing to avoid conflict)
-        if (pi.aimUp && !didWallClimb) player->aimUp();
+        // Aiming
+        if (pi.aimUp) player->aimUp();
         else if (pi.aimDown) player->aimDown();
         else player->resetAim();
 

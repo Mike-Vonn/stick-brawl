@@ -320,24 +320,23 @@ void StickFigure::startRespawnTimer(float delay, float x, float y) {
 b2Vec2 StickFigure::getPosition() const { return b2Body_GetPosition(m_torso); }
 
 
-bool StickFigure::isTouchingWall() const {
+int StickFigure::wallSide() const {
     b2Vec2 pos = b2Body_GetPosition(m_torso);
     b2QueryFilter filter = b2DefaultQueryFilter();
     filter.categoryBits = CAT_PLAYER;
     filter.maskBits = CAT_PLATFORM;
-    // Cast a short ray to the left and right
     for (float side : {-1.0f, 1.0f}) {
         b2Vec2 origin = {pos.x + side * (m_config.bodyWidth / 2.0f + 0.05f), pos.y};
         b2Vec2 translation = {side * 0.3f, 0.0f};
         b2RayResult result = b2World_CastRayClosest(m_physics->getWorldId(), origin, translation, filter);
-        if (result.hit) return true;
+        if (result.hit) return static_cast<int>(side);
     }
-    return false;
+    return 0;
 }
 
 void StickFigure::wallClimbUp() {
     if (!canWallClimb(m_charType)) return;
-    if (!isTouchingWall()) return;
+    if (wallSide() == 0) return;
     // Allow upward movement along the wall
     b2Vec2 v = b2Body_GetLinearVelocity(m_torso);
     b2Body_SetLinearVelocity(m_torso, {v.x, m_moveSpeed * 0.7f});
@@ -378,7 +377,7 @@ void StickFigure::draw(sf::RenderTarget& target) const {
     }
 
     // Wall climb indicator for Jaguar/Panther
-    if (canWallClimb(m_charType) && isTouchingWall() && !isOnGround()) {
+    if (canWallClimb(m_charType) && wallSide() != 0 && !isOnGround()) {
         sf::Vector2f pos = toScreen(getPosition());
         // Small claw marks
         for (int i = 0; i < 3; i++) {

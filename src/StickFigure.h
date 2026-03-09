@@ -79,7 +79,7 @@ public:
     void stopMoving();
 
     void wallClimbUp();
-    bool isTouchingWall() const;
+    int wallSide() const;  // 0 = no wall, -1 = wall on left, 1 = wall on right
 
     // Aiming
     void aimUp();
