@@ -24,5 +24,10 @@
 
 - **I5.** **`m_wasAlive` defensive resize** — Added a resize guard at the top of `checkPlayerDeaths()` ensuring `m_wasAlive` always matches the player count. Removed the silent `i < m_wasAlive.size()` guards that would skip untracked players.
 
-- **F5.** **Dragon glide ability**
-- **F6.** **Unique weapon pickup icons** — Each weapon now has a distinct visual icon when spawned as a pickup instead of a generic gold box. Katana: angled blade with guard and handle. Pistol: L-shaped gun silhouette with trigger guard. Shotgun: long barrel with wide muzzle, wooden stock and grip. Grenade Launcher: military green tube with grenade at tip. Nuclear Hand Grenade: glowing aura with grey shell and spinning radiation trefoil. Unknown weapons fall back to the old gold box. — Dragon can glide by holding the jump button while airborne. Downward velocity is clamped to -2.0 m/s for a slow descent. Wings spread wider with a gentle flap animation during glide. Glide state resets each frame and only activates for the Dragon character type.
+- **F5.** **Dragon glide ability** — Dragon can glide by holding the jump button while airborne. Downward velocity is clamped to -2.0 m/s for a slow descent. Wings spread wider with a gentle flap animation during glide. Glide state resets each frame and only activates for the Dragon character type.
+
+- **F6.** **Unique weapon pickup icons** — Each weapon now has a distinct visual icon when spawned as a pickup instead of a generic gold box. Katana: angled blade with guard and handle. Pistol: L-shaped gun silhouette with trigger guard. Shotgun: long barrel with wide muzzle, wooden stock and grip. Grenade Launcher: military green tube with grenade at tip. Nuclear Hand Grenade: glowing aura with grey shell and spinning radiation trefoil. Unknown weapons fall back to the old gold box.
+
+- **F7.** **Weapon icon above characters** — Reuses `drawWeaponIcon()` at 0.6x scale, drawn 45px above each alive player holding a non-Fists weapon. Added `scale` parameter to `drawWeaponIcon()` using `sf::Transform` so all shapes scale uniformly around center.
+
+- **F8.** **Weapon inventory, switching & death drops** — Characters carry unlimited weapons (slot 0 = innate, rest = pickups). Added `WeaponSlot` struct and `m_inventory` vector to `StickFigure`, replacing single `m_weapon`/`m_currentAmmo`. Swap key (R/Down/K/Numpad2/M per player) cycles active weapon. Pickups add to inventory and auto-switch. On death, all non-innate weapons scatter as pickups with preserved ammo. Respawn resets to innate weapon only.

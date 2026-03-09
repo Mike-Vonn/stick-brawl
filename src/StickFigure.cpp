@@ -14,6 +14,7 @@ StickFigure::StickFigure(int playerIndex, Physics& physics, float spawnX, float 
     : m_playerIndex(playerIndex), m_color(color), m_charType(type)
     , m_physics(&physics), m_health(100.0f)
 {
+    m_inventory.push_back({WeaponData{}, -1});  // default Fists
     createBodies(physics, spawnX, spawnY);
 }
 
@@ -141,19 +142,46 @@ void StickFigure::resetAim() { m_aimAngle *= 0.9f; } // slowly return to center
 
 bool StickFigure::canAttack() const {
     if (m_attackCooldown > 0.0f) return false;
-    if (m_weapon.ammo >= 0 && m_currentAmmo <= 0) return false;
+    const auto& slot = m_inventory[m_activeWeapon];
+    if (slot.weapon.ammo >= 0 && slot.ammo <= 0) return false;
     return true;
 }
 
 void StickFigure::attack() {
-    m_attackCooldown = m_weapon.attackRate;
+    auto& slot = m_inventory[m_activeWeapon];
+    m_attackCooldown = slot.weapon.attackRate;
     m_attackAnimTimer = 0.2f;
-    if (m_currentAmmo > 0) m_currentAmmo--;
+    if (slot.ammo > 0) slot.ammo--;
+}
+
+void StickFigure::setInnateWeapon(const WeaponData& weapon) {
+    m_inventory[0] = {weapon, weapon.ammo};
+    m_activeWeapon = 0;
 }
 
 void StickFigure::equipWeapon(const WeaponData& weapon) {
-    m_weapon = weapon;
-    m_currentAmmo = weapon.ammo;
+    m_inventory.push_back({weapon, weapon.ammo});
+    m_activeWeapon = static_cast<int>(m_inventory.size()) - 1;
+}
+
+void StickFigure::equipWeapon(const WeaponData& weapon, int currentAmmo) {
+    m_inventory.push_back({weapon, currentAmmo});
+    m_activeWeapon = static_cast<int>(m_inventory.size()) - 1;
+}
+
+void StickFigure::switchWeapon() {
+    if (m_inventory.size() <= 1) return;
+    m_activeWeapon = (m_activeWeapon + 1) % static_cast<int>(m_inventory.size());
+}
+
+std::vector<StickFigure::WeaponSlot> StickFigure::dropAllNonInnate() {
+    std::vector<WeaponSlot> dropped;
+    for (size_t i = 1; i < m_inventory.size(); i++) {
+        dropped.push_back(m_inventory[i]);
+    }
+    m_inventory.resize(1);  // keep only slot 0 (innate)
+    m_activeWeapon = 0;
+    return dropped;
 }
 
 void StickFigure::takeDamage(float amount, float knockbackX, float knockbackY) {
@@ -225,8 +253,9 @@ void StickFigure::respawn(float x, float y) {
     b2Body_SetLinearVelocity(m_rightLeg, zero);
     b2Body_SetAngularVelocity(m_rightLeg, 0.0f);
 
-    m_weapon = WeaponData{};
-    m_currentAmmo = -1;
+    m_inventory.resize(1);  // keep only slot 0 (innate weapon)
+    m_inventory[0].ammo = m_inventory[0].weapon.ammo;  // reset ammo
+    m_activeWeapon = 0;
 }
 
 void StickFigure::teleportTo(float x, float y) {
@@ -317,13 +346,14 @@ void StickFigure::draw(sf::RenderTarget& target) const {
         case CharacterType::Crocodile: drawCrocodile(target); break;
         case CharacterType::StickLady: drawStickLady(target); break;
         case CharacterType::Dragon:    drawDragon(target); break;
+        case CharacterType::MrDiaperPants: drawMrDiaperPants(target); break;
         default:                       drawStick(target); break;
     }
 
     if (m_attackAnimTimer > 0.0f) drawAttackEffect(target);
 
     // Draw aim indicator for ranged weapons
-    if (m_weapon.type != WeaponType::Melee) drawAimIndicator(target);
+    if (getCurrentWeapon().type != WeaponType::Melee) drawAimIndicator(target);
 
     // Poison effect - green particles
     if (m_poisonTimer > 0.0f) {
@@ -1464,16 +1494,130 @@ void StickFigure::drawDragon(sf::RenderTarget& target) const {
     }
 }
 
+void StickFigure::drawMrDiaperPants(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+
+    auto drawLine = [&](sf::Vector2f a, sf::Vector2f b, sf::Color c) {
+        sf::VertexArray line(sf::PrimitiveType::Lines, 2);
+        line[0] = sf::Vertex{a, c};
+        line[1] = sf::Vertex{b, c};
+        target.draw(line);
+    };
+
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f sp = toScreen(tp);
+    sf::Vector2f headSp = toScreen(b2Body_GetPosition(m_head));
+    float dir = static_cast<float>(m_facingDir);
+
+    // Big round belly (filled oval)
+    float bellyW = 14.0f;
+    float bellyH = 12.0f;
+    sf::CircleShape belly(bellyW);
+    belly.setScale({1.0f, bellyH / bellyW});
+    belly.setOrigin({bellyW, bellyW});
+    belly.setPosition({sp.x, sp.y - 2.0f});
+    belly.setFillColor(sf::Color(dc.r, dc.g, dc.b, 120));
+    belly.setOutlineColor(dc);
+    belly.setOutlineThickness(2.0f);
+    target.draw(belly);
+
+    // Diaper (white puffy triangle/trapezoid around the hips)
+    float hipY = sp.y + 8.0f;
+    sf::ConvexShape diaper(4);
+    diaper.setPoint(0, {sp.x - 10.0f, hipY - 4.0f});
+    diaper.setPoint(1, {sp.x + 10.0f, hipY - 4.0f});
+    diaper.setPoint(2, {sp.x + 7.0f,  hipY + 8.0f});
+    diaper.setPoint(3, {sp.x - 7.0f,  hipY + 8.0f});
+    diaper.setFillColor(sf::Color(255, 255, 255, 220));
+    diaper.setOutlineColor(sf::Color(200, 200, 200));
+    diaper.setOutlineThickness(1.0f);
+    target.draw(diaper);
+
+    // Diaper pin (small blue circle)
+    sf::CircleShape pin(2.0f);
+    pin.setOrigin({2.0f, 2.0f});
+    pin.setPosition({sp.x + dir * 3.0f, hipY});
+    pin.setFillColor(sf::Color(80, 150, 255));
+    target.draw(pin);
+
+    // Head — big round face
+    float headR = m_config.headRadius * PPM * 1.3f;
+    sf::CircleShape headShape(headR);
+    headShape.setOrigin({headR, headR});
+    headShape.setPosition(headSp);
+    headShape.setFillColor(sf::Color(dc.r, dc.g, dc.b, 80));
+    headShape.setOutlineColor(dc);
+    headShape.setOutlineThickness(2.0f);
+    target.draw(headShape);
+
+    // Dopey smile
+    float smileR = headR * 0.5f;
+    sf::CircleShape smile(smileR, 16);
+    smile.setOrigin({smileR, smileR});
+    smile.setPosition({headSp.x + dir * 1.0f, headSp.y + 2.0f});
+    smile.setFillColor(sf::Color::Transparent);
+    smile.setOutlineColor(dc);
+    smile.setOutlineThickness(1.0f);
+    // Clip to bottom half by drawing a cover rectangle
+    target.draw(smile);
+    sf::RectangleShape smileCover({smileR * 2.2f, smileR});
+    smileCover.setOrigin({smileR * 1.1f, smileR});
+    smileCover.setPosition({headSp.x + dir * 1.0f, headSp.y + 2.0f});
+    smileCover.setFillColor(sf::Color(dc.r, dc.g, dc.b, 80));
+    target.draw(smileCover);
+
+    // Eyes — small dots
+    float eyeY = headSp.y - 2.0f;
+    for (int side = -1; side <= 1; side += 2) {
+        sf::CircleShape eye(1.5f);
+        eye.setOrigin({1.5f, 1.5f});
+        eye.setPosition({headSp.x + static_cast<float>(side) * 4.0f, eyeY});
+        eye.setFillColor(dc);
+        target.draw(eye);
+    }
+
+    // Short stubby arms (thick lines)
+    sf::Vector2f shoulder = {sp.x, sp.y - 6.0f};
+    sf::Vector2f lArm = toScreen(b2Body_GetPosition(m_leftArm));
+    sf::Vector2f rArm = toScreen(b2Body_GetPosition(m_rightArm));
+    drawLine(shoulder, lArm, dc);
+    drawLine(shoulder, rArm, dc);
+
+    // Holding baby bottle in front hand
+    sf::Vector2f handPos = (dir > 0) ? rArm : lArm;
+    // Bottle body
+    sf::RectangleShape bottle({4.0f, 10.0f});
+    bottle.setOrigin({2.0f, 10.0f});
+    bottle.setPosition({handPos.x + dir * 3.0f, handPos.y});
+    bottle.setFillColor(sf::Color(240, 240, 255, 200));
+    bottle.setOutlineColor(sf::Color(180, 180, 200));
+    bottle.setOutlineThickness(0.5f);
+    target.draw(bottle);
+    // Bottle nipple
+    sf::CircleShape nipple(2.5f);
+    nipple.setOrigin({2.5f, 2.5f});
+    nipple.setPosition({handPos.x + dir * 3.0f, handPos.y - 12.0f});
+    nipple.setFillColor(sf::Color(255, 180, 140));
+    target.draw(nipple);
+
+    // Stubby legs
+    sf::Vector2f hip = {sp.x, sp.y + 12.0f};
+    sf::Vector2f lLeg = toScreen(b2Body_GetPosition(m_leftLeg));
+    sf::Vector2f rLeg = toScreen(b2Body_GetPosition(m_rightLeg));
+    drawLine(hip, lLeg, dc);
+    drawLine(hip, rLeg, dc);
+}
+
 void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
     sf::Vector2f sp = toScreen(getPosition());
     float dir = static_cast<float>(m_facingDir);
     float prog = 1.0f - (m_attackAnimTimer / 0.2f);
 
-    if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::StickLady) {
+    if (getCurrentWeapon().type == WeaponType::Melee && m_charType == CharacterType::StickLady) {
         // Purse swing attack — wide arc with purse trail
         float swingAngle = -120.0f + 240.0f * prog; // big swing arc
         float swingRad = swingAngle * PI / 180.0f;
-        float swingR = m_weapon.range * PPM * 0.5f;
+        float swingR = getCurrentWeapon().range * PPM * 0.5f;
         float purseX = sp.x + dir * std::cos(swingRad) * swingR;
         float purseY = sp.y - 5.0f + std::sin(swingRad) * swingR;
 
@@ -1517,13 +1661,13 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
                 target.draw(ray);
             }
         }
-    } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Crocodile) {
+    } else if (getCurrentWeapon().type == WeaponType::Melee && m_charType == CharacterType::Crocodile) {
         // Jaw snap effect — closing jaws with impact lines
         float snapProg = prog; // 0 = start, 1 = fully snapped
         float jawAngle = (1.0f - std::abs(snapProg * 2.0f - 1.0f)) * 25.0f; // opens then snaps
 
         // Upper jaw line
-        float jawLen = m_weapon.range * PPM * 0.5f;
+        float jawLen = getCurrentWeapon().range * PPM * 0.5f;
         sf::ConvexShape upperJaw(3);
         upperJaw.setPoint(0, {sp.x + dir * 10.0f, sp.y - 8.0f});
         upperJaw.setPoint(1, {sp.x + dir * (10.0f + jawLen), sp.y - 8.0f - jawAngle * 0.5f});
@@ -1554,9 +1698,9 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
                 target.draw(line);
             }
         }
-    } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Unicorn) {
+    } else if (getCurrentWeapon().type == WeaponType::Melee && m_charType == CharacterType::Unicorn) {
         // Magical horn blast — expanding rainbow ring
-        float arcR = m_weapon.range * PPM * 0.7f * prog;
+        float arcR = getCurrentWeapon().range * PPM * 0.7f * prog;
         constexpr int particles = 12;
         for (int i = 0; i < particles; i++) {
             float angle = static_cast<float>(i) / static_cast<float>(particles) * TWO_PI;
@@ -1583,8 +1727,8 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
         flash.setPosition({sp.x + dir * 15.0f, sp.y - 15.0f});
         flash.setFillColor(sf::Color(255, 255, 255, static_cast<uint8_t>(180 * (1.0f - prog))));
         target.draw(flash);
-    } else if (m_weapon.type == WeaponType::Melee) {
-        float arcR = m_weapon.range * PPM * 0.6f;
+    } else if (getCurrentWeapon().type == WeaponType::Melee) {
+        float arcR = getCurrentWeapon().range * PPM * 0.6f;
         int segs = 8;
         for (int i = 0; i <= segs; i++) {
             float t = static_cast<float>(i) / static_cast<float>(segs);

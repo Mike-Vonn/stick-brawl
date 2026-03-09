@@ -10,12 +10,23 @@ static constexpr float PI = 3.14159265f;
 
 // ─── Weapon pickup icon drawing ──────────────────────────────────────
 static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
-                           sf::Vector2f pos, float timer) {
+                           sf::Vector2f pos, float timer, float scale = 1.0f) {
+    // Scale transform around pos so icons can be drawn smaller above characters
+    sf::RenderStates states;
+    if (scale != 1.0f) {
+        sf::Transform xf;
+        xf.translate(pos);
+        xf.scale({scale, scale});
+        xf.translate(-pos);
+        states.transform = xf;
+    }
+    auto draw = [&](const auto& drawable) { target.draw(drawable, states); };
+
     auto drawLine = [&](sf::Vector2f a, sf::Vector2f b, sf::Color c) {
         sf::VertexArray line(sf::PrimitiveType::Lines, 2);
         line[0] = sf::Vertex{a, c};
         line[1] = sf::Vertex{b, c};
-        target.draw(line);
+        draw(line);
     };
 
     float rot = timer * 20.0f; // gentle slow rotation in degrees
@@ -32,7 +43,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         bladeShape.setPosition({pos.x, pos.y - 2.0f});
         bladeShape.setRotation(sf::degrees(-30.0f));
         bladeShape.setFillColor(blade);
-        target.draw(bladeShape);
+        draw(bladeShape);
 
         // Guard (small cross piece)
         sf::RectangleShape guardShape({2.0f, 7.0f});
@@ -40,7 +51,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         guardShape.setPosition({pos.x - 6.0f, pos.y + 1.5f});
         guardShape.setRotation(sf::degrees(-30.0f));
         guardShape.setFillColor(guard);
-        target.draw(guardShape);
+        draw(guardShape);
 
         // Handle
         sf::RectangleShape handleShape({8.0f, 3.0f});
@@ -48,7 +59,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         handleShape.setPosition({pos.x - 7.0f, pos.y + 2.0f});
         handleShape.setRotation(sf::degrees(-30.0f));
         handleShape.setFillColor(handle);
-        target.draw(handleShape);
+        draw(handleShape);
     }
     else if (name == "Pistol") {
         // Gun silhouette: barrel + grip
@@ -62,7 +73,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         barrel.setFillColor(metal);
         barrel.setOutlineColor(outline);
         barrel.setOutlineThickness(0.5f);
-        target.draw(barrel);
+        draw(barrel);
 
         // Grip
         sf::RectangleShape grip({4.0f, 8.0f});
@@ -71,7 +82,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         grip.setFillColor(metal);
         grip.setOutlineColor(outline);
         grip.setOutlineThickness(0.5f);
-        target.draw(grip);
+        draw(grip);
 
         // Trigger guard (small arc)
         sf::CircleShape trigGuard(3.0f);
@@ -80,7 +91,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         trigGuard.setFillColor(sf::Color::Transparent);
         trigGuard.setOutlineColor(outline);
         trigGuard.setOutlineThickness(0.5f);
-        target.draw(trigGuard);
+        draw(trigGuard);
     }
     else if (name == "Shotgun") {
         // Longer barrel + stock
@@ -95,14 +106,14 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         barrel.setFillColor(metal);
         barrel.setOutlineColor(outline);
         barrel.setOutlineThickness(0.5f);
-        target.draw(barrel);
+        draw(barrel);
 
         // Wide muzzle end
         sf::RectangleShape muzzle({3.0f, 6.0f});
         muzzle.setOrigin({1.5f, 3.0f});
         muzzle.setPosition({pos.x + 14.0f, pos.y - 2.0f});
         muzzle.setFillColor(metal);
-        target.draw(muzzle);
+        draw(muzzle);
 
         // Stock
         sf::RectangleShape stock({10.0f, 5.0f});
@@ -111,14 +122,14 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         stock.setFillColor(wood);
         stock.setOutlineColor(outline);
         stock.setOutlineThickness(0.5f);
-        target.draw(stock);
+        draw(stock);
 
         // Grip
         sf::RectangleShape grip({3.0f, 6.0f});
         grip.setOrigin({1.5f, 0.0f});
         grip.setPosition({pos.x - 2.0f, pos.y});
         grip.setFillColor(wood);
-        target.draw(grip);
+        draw(grip);
     }
     else if (name == "Grenade Launcher") {
         // Tube + grenade at tip
@@ -133,7 +144,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         body.setFillColor(tube);
         body.setOutlineColor(outline);
         body.setOutlineThickness(0.5f);
-        target.draw(body);
+        draw(body);
 
         // Grenade (circle at muzzle)
         sf::CircleShape gren(4.0f);
@@ -142,14 +153,14 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         gren.setFillColor(grenade);
         gren.setOutlineColor(outline);
         gren.setOutlineThickness(0.5f);
-        target.draw(gren);
+        draw(gren);
 
         // Grip
         sf::RectangleShape grip({3.0f, 6.0f});
         grip.setOrigin({1.5f, 0.0f});
         grip.setPosition({pos.x - 3.0f, pos.y + 2.5f});
         grip.setFillColor(tube);
-        target.draw(grip);
+        draw(grip);
     }
     else if (name == "Nuclear Hand Grenade") {
         // Glowing circle with radiation symbol
@@ -163,7 +174,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         aura.setOrigin({12.0f, 12.0f});
         aura.setPosition(pos);
         aura.setFillColor(glow);
-        target.draw(aura);
+        draw(aura);
 
         // Grenade body
         sf::CircleShape body(7.0f);
@@ -172,7 +183,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         body.setFillColor(shell);
         body.setOutlineColor(sf::Color(160, 160, 160));
         body.setOutlineThickness(1.0f);
-        target.draw(body);
+        draw(body);
 
         // Radiation trefoil: 3 lines from center
         for (int i = 0; i < 3; i++) {
@@ -186,7 +197,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
             dot.setOrigin({1.5f, 1.5f});
             dot.setPosition({ex, ey});
             dot.setFillColor(radColor);
-            target.draw(dot);
+            draw(dot);
         }
 
         // Center dot
@@ -194,7 +205,36 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         center.setOrigin({2.0f, 2.0f});
         center.setPosition(pos);
         center.setFillColor(radColor);
-        target.draw(center);
+        draw(center);
+    }
+    else if (name == "Milk Squirt") {
+        // Baby bottle
+        sf::Color bottle(240, 240, 255, 220);
+        sf::Color nippleC(255, 180, 140);
+        sf::Color milk(255, 255, 255, 180);
+
+        // Bottle body
+        sf::RectangleShape body({6.0f, 14.0f});
+        body.setOrigin({3.0f, 7.0f});
+        body.setPosition({pos.x, pos.y + 2.0f});
+        body.setFillColor(bottle);
+        body.setOutlineColor(sf::Color(180, 180, 200));
+        body.setOutlineThickness(0.5f);
+        draw(body);
+
+        // Milk inside (slightly smaller, white)
+        sf::RectangleShape milkFill({4.0f, 8.0f});
+        milkFill.setOrigin({2.0f, 4.0f});
+        milkFill.setPosition({pos.x, pos.y + 4.0f});
+        milkFill.setFillColor(milk);
+        draw(milkFill);
+
+        // Nipple on top
+        sf::CircleShape nip(3.5f);
+        nip.setOrigin({3.5f, 3.5f});
+        nip.setPosition({pos.x, pos.y - 6.0f});
+        nip.setFillColor(nippleC);
+        draw(nip);
     }
     else {
         // Fallback: generic gold box (for any future weapons)
@@ -205,7 +245,7 @@ static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
         box.setOutlineColor(sf::Color::White);
         box.setOutlineThickness(1.0f);
         box.setRotation(sf::degrees(timer * 60.0f));
-        target.draw(box);
+        draw(box);
     }
 }
 
@@ -245,6 +285,7 @@ static CharacterType indexToType(int idx) {
         case 4: return CharacterType::Crocodile;
         case 5: return CharacterType::StickLady;
         case 6: return CharacterType::Dragon;
+        case 7: return CharacterType::MrDiaperPants;
         default: return CharacterType::Stick;
     }
 }
@@ -809,6 +850,105 @@ void Game::renderCharSelect() {
                 }
                 break;
             }
+            case CharacterType::MrDiaperPants: {
+                // Big round belly
+                sf::CircleShape belly(22.0f);
+                belly.setScale({1.0f, 0.85f});
+                belly.setOrigin({22.0f, 22.0f});
+                belly.setPosition({cx, previewY + 2.0f});
+                belly.setFillColor(sf::Color(pc.r, pc.g, pc.b, 120));
+                belly.setOutlineColor(pc);
+                belly.setOutlineThickness(2.0f);
+                win.draw(belly);
+
+                // Diaper
+                sf::ConvexShape diaper(4);
+                diaper.setPoint(0, {cx - 16.0f, previewY + 12.0f});
+                diaper.setPoint(1, {cx + 16.0f, previewY + 12.0f});
+                diaper.setPoint(2, {cx + 12.0f, previewY + 26.0f});
+                diaper.setPoint(3, {cx - 12.0f, previewY + 26.0f});
+                diaper.setFillColor(sf::Color(255, 255, 255, 220));
+                diaper.setOutlineColor(sf::Color(200, 200, 200));
+                diaper.setOutlineThickness(1.0f);
+                win.draw(diaper);
+
+                // Diaper pin
+                sf::CircleShape pin(2.5f);
+                pin.setOrigin({2.5f, 2.5f});
+                pin.setPosition({cx + 5.0f, previewY + 16.0f});
+                pin.setFillColor(sf::Color(80, 150, 255));
+                win.draw(pin);
+
+                // Big head
+                sf::CircleShape head(15.0f);
+                head.setOrigin({15.0f, 15.0f});
+                head.setPosition({cx, previewY - 28.0f});
+                head.setFillColor(sf::Color(pc.r, pc.g, pc.b, 80));
+                head.setOutlineColor(pc);
+                head.setOutlineThickness(2.0f);
+                win.draw(head);
+
+                // Eyes
+                for (float es : {-1.0f, 1.0f}) {
+                    sf::CircleShape eye(2.0f);
+                    eye.setOrigin({2.0f, 2.0f});
+                    eye.setPosition({cx + es * 6.0f, previewY - 30.0f});
+                    eye.setFillColor(pc);
+                    win.draw(eye);
+                }
+
+                // Dopey smile (arc)
+                sf::CircleShape smile(6.0f, 12);
+                smile.setOrigin({6.0f, 6.0f});
+                smile.setPosition({cx, previewY - 24.0f});
+                smile.setFillColor(sf::Color::Transparent);
+                smile.setOutlineColor(pc);
+                smile.setOutlineThickness(1.0f);
+                win.draw(smile);
+
+                // Stubby arms
+                for (float s : {-1.0f, 1.0f}) {
+                    sf::VertexArray arm(sf::PrimitiveType::Lines, 2);
+                    arm[0] = sf::Vertex{{cx + s * 14.0f, previewY - 6.0f}, pc};
+                    arm[1] = sf::Vertex{{cx + s * 26.0f, previewY + 6.0f}, pc};
+                    win.draw(arm);
+                }
+
+                // Baby bottle in right hand
+                sf::RectangleShape bottle({5.0f, 12.0f});
+                bottle.setOrigin({2.5f, 12.0f});
+                bottle.setPosition({cx + 29.0f, previewY + 6.0f});
+                bottle.setFillColor(sf::Color(240, 240, 255, 200));
+                bottle.setOutlineColor(sf::Color(180, 180, 200));
+                bottle.setOutlineThickness(0.5f);
+                win.draw(bottle);
+                sf::CircleShape nipple(3.0f);
+                nipple.setOrigin({3.0f, 3.0f});
+                nipple.setPosition({cx + 29.0f, previewY - 8.0f});
+                nipple.setFillColor(sf::Color(255, 180, 140));
+                win.draw(nipple);
+
+                // Stubby legs
+                for (float s : {-1.0f, 1.0f}) {
+                    sf::VertexArray leg(sf::PrimitiveType::Lines, 2);
+                    leg[0] = sf::Vertex{{cx + s * 8.0f, previewY + 24.0f}, pc};
+                    leg[1] = sf::Vertex{{cx + s * 10.0f, previewY + 38.0f}, pc};
+                    win.draw(leg);
+                }
+
+                // Milk squirt hint
+                for (int mi = 0; mi < 3; mi++) {
+                    float mf = static_cast<float>(mi) / 3.0f;
+                    float mx = cx + 32.0f + mf * 10.0f;
+                    float my = previewY - 6.0f + std::sin(m_selectAnimTimer * 5.0f + mf * 3.0f) * 4.0f;
+                    sf::CircleShape milk(2.0f - mf * 0.5f);
+                    milk.setOrigin({2.0f - mf * 0.5f, 2.0f - mf * 0.5f});
+                    milk.setPosition({mx, my});
+                    milk.setFillColor(sf::Color(255, 255, 255, static_cast<uint8_t>(200 - mf * 80)));
+                    win.draw(milk);
+                }
+                break;
+            }
         }
 
         // Ready indicator
@@ -896,22 +1036,25 @@ void Game::startGame() {
         p->setLives(rules.livesPerPlayer);
         p->setMaxHealth(rules.maxHealth);
 
-        // Give innate weapons
+        // Give innate weapons (replaces slot 0)
         if (ct == CharacterType::Cobra) {
             auto* poison = m_weaponFactory.getWeapon("Poison Spit");
-            if (poison) p->equipWeapon(*poison);
+            if (poison) p->setInnateWeapon(*poison);
         } else if (ct == CharacterType::Unicorn) {
             auto* horn = m_weaponFactory.getWeapon("Horn Blast");
-            if (horn) p->equipWeapon(*horn);
+            if (horn) p->setInnateWeapon(*horn);
         } else if (ct == CharacterType::Crocodile) {
             auto* jaw = m_weaponFactory.getWeapon("Jaw Snap");
-            if (jaw) p->equipWeapon(*jaw);
+            if (jaw) p->setInnateWeapon(*jaw);
         } else if (ct == CharacterType::StickLady) {
             auto* purse = m_weaponFactory.getWeapon("Purse Swing");
-            if (purse) p->equipWeapon(*purse);
+            if (purse) p->setInnateWeapon(*purse);
         } else if (ct == CharacterType::Dragon) {
             auto* fire = m_weaponFactory.getWeapon("Fire Breath");
-            if (fire) p->equipWeapon(*fire);
+            if (fire) p->setInnateWeapon(*fire);
+        } else if (ct == CharacterType::MrDiaperPants) {
+            auto* milk = m_weaponFactory.getWeapon("Milk Squirt");
+            if (milk) p->setInnateWeapon(*milk);
         }
 
         m_players.push_back(std::move(p));
@@ -1038,6 +1181,8 @@ void Game::handlePlayerInput(float dt) {
         if (pi.aimUp) player->aimUp();
         else if (pi.aimDown) player->aimDown();
         else player->resetAim();
+
+        if (pi.swapPressed) player->switchWeapon();
 
         if (pi.attackPressed && player->canAttack()) {
             const auto& weapon = player->getCurrentWeapon();
@@ -1338,7 +1483,8 @@ void Game::updateWeaponSpawns(float dt) {
             pickup.weapon = m_weaponFactory.getRandomWeapon();
         } while (pickup.weapon.name == "Fists" || pickup.weapon.name == "Poison Spit"
                  || pickup.weapon.name == "Horn Blast" || pickup.weapon.name == "Jaw Snap"
-                 || pickup.weapon.name == "Purse Swing" || pickup.weapon.name == "Fire Breath");
+                 || pickup.weapon.name == "Purse Swing" || pickup.weapon.name == "Fire Breath"
+                 || pickup.weapon.name == "Milk Squirt");
         pickup.alive = true;
         pickup.bobTimer = 0.0f;
         m_pickups.push_back(pickup);
@@ -1359,7 +1505,8 @@ void Game::updateWeaponPickups(float dt) {
             float dist = std::sqrt(dx * dx + dy * dy);
 
             if (dist < 1.5f) {
-                player->equipWeapon(pickup.weapon);
+                int ammo = (pickup.currentAmmo >= 0) ? pickup.currentAmmo : pickup.weapon.ammo;
+                player->equipWeapon(pickup.weapon, ammo);
                 pickup.alive = false;
                 std::cout << "Player " << player->getPlayerIndex()
                           << " picked up " << pickup.weapon.name << "!\n";
@@ -1453,6 +1600,19 @@ void Game::checkPlayerDeaths() {
                     player->getLastKnockbackX(), player->getLastKnockbackY());
             }
 
+            // Drop all non-innate weapons as pickups
+            auto dropped = player->dropAllNonInnate();
+            for (size_t d = 0; d < dropped.size(); d++) {
+                WeaponPickup wp;
+                float scatter = (static_cast<float>(d) - static_cast<float>(dropped.size()) / 2.0f) * 0.8f;
+                wp.position = {pos.x + scatter, pos.y + 0.5f};
+                wp.weapon = dropped[d].weapon;
+                wp.currentAmmo = dropped[d].ammo;
+                wp.bobTimer = 0.0f;
+                wp.alive = true;
+                m_pickups.push_back(wp);
+            }
+
             // Handle lives/respawn
             int lives = player->getLives() - 1;
             player->setLives(lives);
@@ -1494,6 +1654,17 @@ void Game::render() {
     }
 
     for (const auto& p : m_players) p->draw(m_renderer.getWindow());
+
+    // Draw weapon icon above each player holding a non-Fists weapon
+    for (const auto& p : m_players) {
+        if (!p->isAlive()) continue;
+        const auto& wep = p->getCurrentWeapon();
+        if (wep.name == "Fists") continue;
+        b2Vec2 wpos = p->getPosition();
+        sf::Vector2f sp = {SCREEN_CX + wpos.x * PPM,
+                           SCREEN_CY - wpos.y * PPM - 45.0f};
+        drawWeaponIcon(m_renderer.getWindow(), wep.name, sp, m_roundTimer, 0.6f);
+    }
 
     // Draw death animations (gibs, blood, collapse effects)
     m_deathAnims.draw(m_renderer.getWindow());
@@ -1538,6 +1709,12 @@ void Game::render() {
             sf::CircleShape c(4.0f); c.setOrigin({4.0f, 4.0f});
             c.setPosition(sp);
             c.setFillColor(sf::Color(0, 220, 0));
+            m_renderer.getWindow().draw(c);
+        } else if (proj.weapon.name == "Milk Squirt") {
+            // White milk droplets
+            sf::CircleShape c(3.0f); c.setOrigin({3.0f, 3.0f});
+            c.setPosition(sp);
+            c.setFillColor(sf::Color(255, 255, 255, 220));
             m_renderer.getWindow().draw(c);
         } else {
             // Regular bullets / shotgun pellets

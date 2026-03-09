@@ -2,6 +2,7 @@
 #include "Physics.h"
 #include "Weapon.h"
 #include <SFML/Graphics.hpp>
+#include <vector>
 
 struct StickFigureConfig {
     float bodyHeight = 1.8f;
@@ -18,11 +19,12 @@ enum class CharacterType {
     Unicorn,
     Crocodile,
     StickLady,
-    Dragon
+    Dragon,
+    MrDiaperPants
 };
 
 // Number of available character types
-constexpr int CHARACTER_TYPE_COUNT = 7;
+constexpr int CHARACTER_TYPE_COUNT = 8;
 
 inline const char* characterTypeName(CharacterType t) {
     switch (t) {
@@ -33,6 +35,7 @@ inline const char* characterTypeName(CharacterType t) {
         case CharacterType::Crocodile: return "Crocodile";
         case CharacterType::StickLady: return "Stick Lady";
         case CharacterType::Dragon:    return "Dragon";
+        case CharacterType::MrDiaperPants: return "Mr Diaper-Pants";
     }
     return "???";
 }
@@ -54,11 +57,19 @@ public:
     void resetAim();
     float getAimAngle() const { return m_aimAngle; }
 
+    struct WeaponSlot { WeaponData weapon; int ammo = -1; };
+
     bool canAttack() const;
     void attack();
+    void setInnateWeapon(const WeaponData& weapon);
     void equipWeapon(const WeaponData& weapon);
-    const WeaponData& getCurrentWeapon() const { return m_weapon; }
-    int getAmmo() const { return m_currentAmmo; }
+    void equipWeapon(const WeaponData& weapon, int currentAmmo);
+    void switchWeapon();
+    std::vector<WeaponSlot> dropAllNonInnate();
+    const WeaponData& getCurrentWeapon() const { return m_inventory[m_activeWeapon].weapon; }
+    int getAmmo() const { return m_inventory[m_activeWeapon].ammo; }
+    int getInventorySize() const { return static_cast<int>(m_inventory.size()); }
+    int getActiveWeaponIndex() const { return m_activeWeapon; }
 
     void takeDamage(float amount, float knockbackX, float knockbackY);
     void takeDamage(float amount, float knockbackX, float knockbackY,
@@ -110,6 +121,7 @@ private:
     void drawCrocodile(sf::RenderTarget& target) const;
     void drawStickLady(sf::RenderTarget& target) const;
     void drawDragon(sf::RenderTarget& target) const;
+    void drawMrDiaperPants(sf::RenderTarget& target) const;
     void drawAttackEffect(sf::RenderTarget& target) const;
     void drawAimIndicator(sf::RenderTarget& target) const;
 
@@ -145,8 +157,8 @@ private:
     float m_burnDps = 0.0f;
     float m_burnTickTimer = 0.0f;
 
-    WeaponData m_weapon;
-    int        m_currentAmmo = -1;
+    std::vector<WeaponSlot> m_inventory;  // slot 0 = innate weapon
+    int m_activeWeapon = 0;
 
     // Last weapon that dealt the killing blow (for death animation selection)
     std::string m_lastDamageWeapon;

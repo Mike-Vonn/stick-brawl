@@ -12,6 +12,7 @@ static BodyPlan getBodyPlan(CharacterType ct) {
     switch (ct) {
         case CharacterType::Stick:
         case CharacterType::StickLady:
+        case CharacterType::MrDiaperPants:
             return BodyPlan::Humanoid;
         case CharacterType::Cat:
         case CharacterType::Unicorn:

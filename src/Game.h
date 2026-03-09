@@ -31,6 +31,7 @@ struct Projectile {
 struct WeaponPickup {
     b2Vec2 position;
     WeaponData weapon;
+    int currentAmmo = -1;   // -1 = use weapon default, else preserved ammo
     float bobTimer = 0.0f;
     bool alive = true;
 };

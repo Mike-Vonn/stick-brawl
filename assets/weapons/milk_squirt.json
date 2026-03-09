@@ -1,0 +1,19 @@
+{
+    "name": "Milk Squirt",
+    "type": "projectile",
+    "damage": 8,
+    "knockback_force": 6.0,
+    "range": 30.0,
+    "attack_rate_seconds": 0.4,
+    "projectile_speed": 20.0,
+    "projectile_lifetime_seconds": 1.5,
+    "ammo": -1,
+    "spread_degrees": 8.0,
+    "pellet_count": 3,
+    "affected_by_gravity": true,
+    "sprite": "",
+    "projectile_sprite": "",
+    "sound_fire": "",
+    "sound_hit": "",
+    "description": "Sprays milk from a baby bottle. Fast, messy, surprisingly effective."
+}
