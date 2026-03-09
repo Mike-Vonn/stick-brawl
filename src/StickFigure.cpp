@@ -23,33 +23,28 @@ void StickFigure::applyCharacterStats() {
             m_jumpForce = 13.0f;
             break;
         case CharacterType::Lion:
-            m_maxHealth = 130.0f;
-            m_health = 130.0f;
+            m_healthMultiplier = 1.3f;
             m_moveSpeed = 7.5f;
             m_jumpForce = 12.0f;
             break;
         case CharacterType::Tiger:
-            m_maxHealth = 110.0f;
-            m_health = 110.0f;
+            m_healthMultiplier = 1.1f;
             m_moveSpeed = 6.5f;
             m_jumpForce = 11.0f;
             m_damageMultiplier = 1.25f;
             break;
         case CharacterType::Cheetah:
-            m_maxHealth = 75.0f;
-            m_health = 75.0f;
+            m_healthMultiplier = 0.75f;
             m_moveSpeed = 11.5f;
             m_jumpForce = 14.0f;
             break;
         case CharacterType::Jaguar:
-            m_maxHealth = 100.0f;
-            m_health = 100.0f;
+            m_healthMultiplier = 1.0f;
             m_moveSpeed = 8.5f;
             m_jumpForce = 13.0f;
             break;
         case CharacterType::Panther:
-            m_maxHealth = 95.0f;
-            m_health = 95.0f;
+            m_healthMultiplier = 0.95f;
             m_moveSpeed = 9.5f;
             m_jumpForce = 13.0f;
             break;

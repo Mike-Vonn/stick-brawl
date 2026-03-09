@@ -784,9 +784,7 @@ void Game::startGame() {
             playerIdx, m_physics, spawns[playerIdx].x, spawns[playerIdx].y,
             m_playerColors[i], ct);
         p->setLives(rules.livesPerPlayer);
-        if (!isBigCat(ct)) {
-            p->setMaxHealth(rules.maxHealth);
-        }
+        p->setMaxHealth(rules.maxHealth * p->getHealthMultiplier());
 
         // Give innate weapons
         if (ct == CharacterType::Cat) {
