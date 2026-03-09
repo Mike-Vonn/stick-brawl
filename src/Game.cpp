@@ -143,7 +143,7 @@ void Game::renderCharSelect() {
     m_renderer.clear(sf::Color(20, 15, 30));
     auto& win = m_renderer.getWindow();
 
-    // We need a font -- reuse HUD's approach
+    // We need a font — reuse HUD's approach
     // Try to load font inline (simple approach)
     static std::optional<sf::Font> font;
     static bool fontLoaded = false;
@@ -240,7 +240,7 @@ void Game::renderCharSelect() {
             win.draw(rightArrow);
         }
 
-        // Character preview -- draw a simple iconic representation
+        // Character preview — draw a simple iconic representation
         float previewY = SCREEN_HEIGHT / 2.0f + 20.0f;
         sf::Color pc = m_playerColors[i];
 
@@ -968,7 +968,7 @@ void Game::handleMeleeAttack(StickFigure& attacker) {
         }
     }
 
-    // Worms-style terrain carving from melee -- small chip in front of attacker
+    // Worms-style terrain carving from melee — small chip in front of attacker
     float envR = weapon.envDamageRadius;
     if (envR <= 0.0f) envR = weapon.damage * 0.015f; // small carve radius
     float hitX = ap.x + dir * weapon.range * 0.6f;
@@ -1153,7 +1153,7 @@ void Game::updateProjectiles(float dt) {
                 }
             }
 
-            // Carve terrain -- nuke uses full explosion radius, regular explosives a bit less
+            // Carve terrain — nuke uses full explosion radius, regular explosives a bit less
             if (proj.weapon.destroysPlatforms) {
                 m_arena.carveCircle(m_physics, pp.x, pp.y, proj.weapon.explosionRadius);
             } else {
@@ -1253,11 +1253,11 @@ void Game::checkFallDeath() {
         b2Vec2 pos = player->getPosition();
 
         if (m_wrapAround) {
-            // Vertical wrap: fell below bottom -> appear at top
+            // Vertical wrap: fell below bottom → appear at top
             if (pos.y < worldBot) {
                 player->teleportTo(pos.x, worldTop);
             }
-            // Horizontal wrap: off left/right -> appear on opposite side
+            // Horizontal wrap: off left/right → appear on opposite side
             if (pos.x < -worldHalfW) {
                 player->teleportTo(worldHalfW - 1.0f, pos.y);
             } else if (pos.x > worldHalfW) {

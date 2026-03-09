@@ -25,6 +25,7 @@ enum class CharacterType {
     StickLady
 };
 
+// Number of available character types
 constexpr int CHARACTER_TYPE_COUNT = 11;
 
 inline const char* characterTypeName(CharacterType t) {
@@ -80,6 +81,7 @@ public:
     void wallClimbUp();
     bool isTouchingWall() const;
 
+    // Aiming
     void aimUp();
     void aimDown();
     void resetAim();
@@ -94,7 +96,7 @@ public:
     void takeDamage(float amount, float knockbackX, float knockbackY);
     void applyPoison(float dps, float duration);
     void respawn(float x, float y);
-    void teleportTo(float x, float y);
+    void teleportTo(float x, float y); // preserves velocity (for wrap-around)
     void startRespawnTimer(float delay, float x, float y);
     bool isWaitingToRespawn() const { return m_waitingToRespawn; }
     void update(float dt);
@@ -151,7 +153,7 @@ private:
     float m_maxHealth = 100.0f;
     int   m_lives = 3;
     int   m_facingDir = 1;
-    float m_aimAngle = 0.0f;
+    float m_aimAngle = 0.0f; // radians, 0=straight, positive=up, negative=down
     float m_attackCooldown = 0.0f;
     float m_attackAnimTimer = 0.0f;
     float m_damageFlashTimer = 0.0f;
@@ -160,6 +162,7 @@ private:
     float m_pendingRespawnX = 0.0f;
     float m_pendingRespawnY = 0.0f;
 
+    // Poison DOT
     float m_poisonTimer = 0.0f;
     float m_poisonDps = 0.0f;
     float m_poisonTickTimer = 0.0f;
@@ -175,5 +178,6 @@ private:
     float m_healthMultiplier = 1.0f;
 
     StickFigureConfig m_config;
+    // Animation
     float m_animTime = 0.0f;
 };

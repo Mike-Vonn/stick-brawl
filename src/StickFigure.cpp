@@ -1738,7 +1738,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
     float prog = 1.0f - (m_attackAnimTimer / 0.2f);
 
     if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::StickLady) {
-        // Purse swing attack -- wide arc with purse trail
+        // Purse swing attack — wide arc with purse trail
         float swingAngle = -120.0f + 240.0f * prog; // big swing arc
         float swingRad = swingAngle * 3.14159f / 180.0f;
         float swingR = m_weapon.range * PPM * 0.5f;
@@ -1786,7 +1786,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
             }
         }
     } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Crocodile) {
-        // Jaw snap effect -- closing jaws with impact lines
+        // Jaw snap effect — closing jaws with impact lines
         float snapProg = prog; // 0 = start, 1 = fully snapped
         float jawAngle = (1.0f - std::abs(snapProg * 2.0f - 1.0f)) * 25.0f; // opens then snaps
 
@@ -1823,7 +1823,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
             }
         }
     } else if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::Unicorn) {
-        // Magical horn blast -- expanding rainbow ring
+        // Magical horn blast — expanding rainbow ring
         float arcR = m_weapon.range * PPM * 0.7f * prog;
         constexpr int particles = 12;
         for (int i = 0; i < particles; i++) {
