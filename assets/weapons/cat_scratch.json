@@ -1,0 +1,10 @@
+{
+    "name": "Cat Scratch",
+    "type": "melee",
+    "damage": 8,
+    "knockback_force": 4.0,
+    "range": 1.5,
+    "attack_rate_seconds": 0.15,
+    "env_damage_radius": 0.1,
+    "description": "Rapid scratching claws. Low damage but very fast."
+}

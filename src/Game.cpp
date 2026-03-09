@@ -36,15 +36,16 @@ bool Game::init() {
 static CharacterType indexToType(int idx) {
     switch (idx % CHARACTER_TYPE_COUNT) {
         case 0: return CharacterType::Stick;
-        case 1: return CharacterType::Lion;
-        case 2: return CharacterType::Tiger;
-        case 3: return CharacterType::Jaguar;
-        case 4: return CharacterType::Panther;
-        case 5: return CharacterType::Cheetah;
-        case 6: return CharacterType::Cobra;
-        case 7: return CharacterType::Unicorn;
-        case 8: return CharacterType::Crocodile;
-        case 9: return CharacterType::StickLady;
+        case 1: return CharacterType::Cat;
+        case 2: return CharacterType::Lion;
+        case 3: return CharacterType::Tiger;
+        case 4: return CharacterType::Jaguar;
+        case 5: return CharacterType::Panther;
+        case 6: return CharacterType::Cheetah;
+        case 7: return CharacterType::Cobra;
+        case 8: return CharacterType::Unicorn;
+        case 9: return CharacterType::Crocodile;
+        case 10: return CharacterType::StickLady;
         default: return CharacterType::Stick;
     }
 }
@@ -265,6 +266,32 @@ void Game::renderCharSelect() {
                     leg[0] = sf::Vertex{{cx, previewY}, pc};
                     leg[1] = sf::Vertex{{cx + s * 14.0f, previewY + 22.0f}, pc};
                     win.draw(leg);
+                }
+                break;
+            }
+            case CharacterType::Cat: {
+                // Small cat body
+                sf::CircleShape catBody(14.0f);
+                catBody.setScale({1.1f, 0.8f});
+                catBody.setOrigin({14.0f, 14.0f});
+                catBody.setPosition({cx, previewY});
+                catBody.setFillColor(pc);
+                catBody.setOutlineColor(sf::Color::Black); catBody.setOutlineThickness(1.0f);
+                win.draw(catBody);
+                // Head
+                sf::CircleShape catHead(10.0f);
+                catHead.setOrigin({10.0f, 10.0f});
+                catHead.setPosition({cx + 14.0f, previewY - 10.0f});
+                catHead.setFillColor(pc);
+                catHead.setOutlineColor(sf::Color::Black); catHead.setOutlineThickness(1.0f);
+                win.draw(catHead);
+                // Pointy ears
+                for (float es : {-1.0f, 1.0f}) {
+                    sf::ConvexShape ear(3);
+                    ear.setPoint(0, {cx + 14.0f + es * 6.0f, previewY - 18.0f});
+                    ear.setPoint(1, {cx + 14.0f + es * 3.0f, previewY - 30.0f});
+                    ear.setPoint(2, {cx + 14.0f + es * 10.0f, previewY - 22.0f});
+                    ear.setFillColor(pc); win.draw(ear);
                 }
                 break;
             }
@@ -762,7 +789,10 @@ void Game::startGame() {
         }
 
         // Give innate weapons
-        if (ct == CharacterType::Lion) {
+        if (ct == CharacterType::Cat) {
+            auto* w = m_weaponFactory.getWeapon("Cat Scratch");
+            if (w) p->equipWeapon(*w);
+        } else if (ct == CharacterType::Lion) {
             auto* w = m_weaponFactory.getWeapon("Lion Bite");
             if (w) p->equipWeapon(*w);
         } else if (ct == CharacterType::Tiger) {

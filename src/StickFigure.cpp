@@ -17,6 +17,11 @@ StickFigure::StickFigure(int playerIndex, Physics& physics, float spawnX, float 
 
 void StickFigure::applyCharacterStats() {
     switch (m_charType) {
+        case CharacterType::Cat:
+            m_healthMultiplier = 0.8f;
+            m_moveSpeed = 10.0f;
+            m_jumpForce = 13.0f;
+            break;
         case CharacterType::Lion:
             m_maxHealth = 130.0f;
             m_health = 130.0f;
@@ -348,6 +353,7 @@ void StickFigure::draw(sf::RenderTarget& target) const {
     if (!isAlive()) return;
 
     switch (m_charType) {
+        case CharacterType::Cat:       drawCat(target); break;
         case CharacterType::Lion:      drawLion(target); break;
         case CharacterType::Tiger:     drawTiger(target); break;
         case CharacterType::Jaguar:    drawJaguar(target); break;
@@ -457,6 +463,93 @@ static void drawBigCatBase(sf::RenderTarget& target, sf::Vector2f c, float dir,
 static sf::Vector2f bigCatHeadCenter(sf::Vector2f c, float dir,
                                       float bodyW = 30.0f, float headR = 11.0f) {
     return {c.x + dir * (bodyW / 2.0f + headR - 2.0f), c.y - 5.0f};
+}
+
+// ============================================================
+//  CAT - small housecat, pointy ears, whiskers
+// ============================================================
+void StickFigure::drawCat(sf::RenderTarget& target) const {
+    sf::Color dc = (m_damageFlashTimer > 0.0f) ? sf::Color::White : m_color;
+    b2Vec2 tp = b2Body_GetPosition(m_torso);
+    sf::Vector2f c = toScreen(tp);
+    float dir = static_cast<float>(m_facingDir);
+
+    // Tail — curvy
+    float tx = c.x - dir * 12.0f;
+    sf::VertexArray tail(sf::PrimitiveType::LineStrip, 4);
+    tail[0] = sf::Vertex{{tx, c.y}, dc};
+    tail[1] = sf::Vertex{{tx - dir * 8.0f, c.y - 8.0f}, dc};
+    tail[2] = sf::Vertex{{tx - dir * 12.0f, c.y - 16.0f}, dc};
+    tail[3] = sf::Vertex{{tx - dir * 8.0f, c.y - 22.0f}, dc};
+    target.draw(tail);
+
+    // Small body
+    sf::RectangleShape body({22.0f, 13.0f});
+    body.setOrigin({11.0f, 6.5f});
+    body.setPosition(c);
+    body.setFillColor(dc);
+    body.setOutlineColor(sf::Color::Black);
+    body.setOutlineThickness(1.0f);
+    target.draw(body);
+
+    // 4 legs
+    for (float lx : {-0.32f, -0.12f, 0.12f, 0.32f}) {
+        sf::RectangleShape leg({3.0f, 10.0f});
+        leg.setOrigin({1.5f, 0.0f});
+        leg.setPosition({c.x + lx * 22.0f, c.y + 6.5f});
+        leg.setFillColor(dc);
+        leg.setOutlineColor(sf::Color::Black);
+        leg.setOutlineThickness(0.5f);
+        target.draw(leg);
+    }
+
+    // Head
+    sf::CircleShape head(8.0f);
+    head.setOrigin({8.0f, 8.0f});
+    head.setPosition({c.x + dir * 16.0f, c.y - 4.0f});
+    head.setFillColor(dc);
+    head.setOutlineColor(sf::Color::Black);
+    head.setOutlineThickness(1.0f);
+    target.draw(head);
+
+    sf::Vector2f hc = head.getPosition();
+    // Pointy triangular ears
+    for (float s : {-1.0f, 1.0f}) {
+        sf::ConvexShape ear(3);
+        ear.setPoint(0, {hc.x + s * 5.0f, hc.y - 6.0f});
+        ear.setPoint(1, {hc.x + s * 2.0f, hc.y - 16.0f});
+        ear.setPoint(2, {hc.x + s * 8.0f, hc.y - 10.0f});
+        ear.setFillColor(dc);
+        ear.setOutlineColor(sf::Color::Black);
+        ear.setOutlineThickness(0.5f);
+        target.draw(ear);
+    }
+    // Eyes
+    for (float s : {-1.0f, 1.0f}) {
+        sf::CircleShape eye(2.0f);
+        eye.setOrigin({2.0f, 2.0f});
+        eye.setPosition({hc.x + dir * 3.0f + s * 3.0f, hc.y - 1.0f});
+        eye.setFillColor(sf::Color(100, 200, 100));
+        target.draw(eye);
+        sf::CircleShape pupil(1.0f);
+        pupil.setOrigin({1.0f, 1.0f});
+        pupil.setPosition({hc.x + dir * 3.5f + s * 3.0f, hc.y - 1.0f});
+        pupil.setFillColor(sf::Color::Black);
+        target.draw(pupil);
+    }
+    // Nose
+    sf::CircleShape nose(1.5f);
+    nose.setOrigin({1.5f, 1.5f});
+    nose.setPosition({hc.x + dir * 7.0f, hc.y + 1.0f});
+    nose.setFillColor(sf::Color(200, 100, 100));
+    target.draw(nose);
+    // Whiskers
+    for (float wy : {-1.0f, 0.0f, 1.0f}) {
+        sf::VertexArray w(sf::PrimitiveType::Lines, 2);
+        w[0] = sf::Vertex{{hc.x + dir * 8.0f, hc.y + 1.0f + wy * 2.0f}, sf::Color::Black};
+        w[1] = sf::Vertex{{hc.x + dir * 20.0f, hc.y + 1.0f + wy * 5.0f}, sf::Color::Black};
+        target.draw(w);
+    }
 }
 
 // ============================================================

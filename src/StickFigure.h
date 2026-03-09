@@ -13,6 +13,7 @@ struct StickFigureConfig {
 
 enum class CharacterType {
     Stick,
+    Cat,
     Lion,
     Tiger,
     Jaguar,
@@ -24,11 +25,12 @@ enum class CharacterType {
     StickLady
 };
 
-constexpr int CHARACTER_TYPE_COUNT = 10;
+constexpr int CHARACTER_TYPE_COUNT = 11;
 
 inline const char* characterTypeName(CharacterType t) {
     switch (t) {
         case CharacterType::Stick:     return "Stick";
+        case CharacterType::Cat:       return "Cat";
         case CharacterType::Lion:      return "Lion";
         case CharacterType::Tiger:     return "Tiger";
         case CharacterType::Jaguar:    return "Jaguar";
@@ -44,6 +46,7 @@ inline const char* characterTypeName(CharacterType t) {
 
 inline const char* characterTypeBlurb(CharacterType t) {
     switch (t) {
+        case CharacterType::Cat:     return "80% HP | Wall Climb | Fast Scratch";
         case CharacterType::Lion:    return "130 HP | High Knockback";
         case CharacterType::Tiger:   return "Slow but Strong | +25% DMG";
         case CharacterType::Jaguar:  return "Wall Climb | Strong Bite";
@@ -54,7 +57,7 @@ inline const char* characterTypeBlurb(CharacterType t) {
 }
 
 inline bool canWallClimb(CharacterType t) {
-    return t == CharacterType::Jaguar || t == CharacterType::Panther;
+    return t == CharacterType::Cat || t == CharacterType::Jaguar || t == CharacterType::Panther;
 }
 
 inline bool isBigCat(CharacterType t) {
@@ -107,6 +110,7 @@ public:
     sf::Color getColor() const { return m_color; }
     CharacterType getCharacterType() const { return m_charType; }
     float getDamageMultiplier() const { return m_damageMultiplier; }
+    float getHealthMultiplier() const { return m_healthMultiplier; }
 
     b2Vec2 getPosition() const;
     int getFacingDirection() const { return m_facingDir; }
@@ -121,6 +125,7 @@ private:
     void applyCharacterStats();
 
     void drawStick(sf::RenderTarget& target) const;
+    void drawCat(sf::RenderTarget& target) const;
     void drawLion(sf::RenderTarget& target) const;
     void drawTiger(sf::RenderTarget& target) const;
     void drawJaguar(sf::RenderTarget& target) const;
@@ -167,6 +172,7 @@ private:
     float m_moveSpeed = 8.0f;
     float m_jumpForce = 12.0f;
     float m_damageMultiplier = 1.0f;
+    float m_healthMultiplier = 1.0f;
 
     StickFigureConfig m_config;
     float m_animTime = 0.0f;
