@@ -1184,8 +1184,14 @@ void Game::handlePlayerInput(float dt) {
 
         if (pi.swapPressed) player->switchWeapon();
 
-        if (pi.attackPressed && player->canAttack()) {
-            const auto& weapon = player->getCurrentWeapon();
+        // Continuous weapons (e.g. fire breath): fire while held
+        const auto& weapon = player->getCurrentWeapon();
+        if (weapon.continuous && pi.attack && player->canAttack()) {
+            player->attack();
+            spawnProjectile(*player);
+        }
+        // Normal weapons: fire on press
+        else if (pi.attackPressed && player->canAttack()) {
             player->attack();
             if (weapon.type == WeaponType::Melee)
                 handleMeleeAttack(*player);
@@ -1405,6 +1411,18 @@ void Game::updateProjectiles(float dt) {
                 }
                 hitAnyPlayer = true;
                 shouldDetonate = true;
+            }
+        }
+
+        // Fire projectiles destroy weapon pickups on contact
+        if (proj.isBurn && proj.alive) {
+            for (auto& pickup : m_pickups) {
+                if (!pickup.alive) continue;
+                float dx = pp.x - pickup.position.x;
+                float dy = pp.y - pickup.position.y;
+                if (dx * dx + dy * dy < 0.64f) {  // 0.8m radius
+                    pickup.alive = false;
+                }
             }
         }
 
