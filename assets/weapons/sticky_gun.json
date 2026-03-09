@@ -1,0 +1,19 @@
+{
+    "name": "Sticky Gun",
+    "type": "projectile",
+    "damage": 2,
+    "knockback_force": 1.0,
+    "range": 45.0,
+    "attack_rate_seconds": 0.7,
+    "projectile_speed": 35.0,
+    "projectile_lifetime_seconds": 2.5,
+    "ammo": 8,
+    "spread_degrees": 1.0,
+    "slow_effect": 0.9,
+    "slow_duration": 3.0,
+    "sprite": "sticky_gun.png",
+    "projectile_sprite": "sticky_blob.png",
+    "sound_fire": "goo_launch.wav",
+    "sound_hit": "sticky_splat.wav",
+    "description": "Shoots sticky goo that slows enemies by 90% for 3 seconds"
+}

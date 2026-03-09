@@ -1,0 +1,17 @@
+{
+    "name": "Pistol",
+    "type": "projectile",
+    "damage": 20,
+    "knockback_force": 8.0,
+    "range": 50.0,
+    "attack_rate_seconds": 0.6,
+    "projectile_speed": 40.0,
+    "projectile_lifetime_seconds": 2.0,
+    "ammo": 12,
+    "spread_degrees": 2.0,
+    "sprite": "pistol.png",
+    "projectile_sprite": "bullet.png",
+    "sound_hit": "bullet_hit.wav",
+    "sound_fire": "pistol_fire.wav",
+    "description": "Reliable sidearm"
+}

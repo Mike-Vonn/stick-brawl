@@ -1,0 +1,20 @@
+{
+    "name": "Freeze Ray",
+    "type": "projectile",
+    "damage": 3,
+    "knockback_force": 0.5,
+    "range": 35.0,
+    "attack_rate_seconds": 0.2,
+    "projectile_speed": 40.0,
+    "projectile_lifetime_seconds": 1.5,
+    "ammo": 30,
+    "spread_degrees": 5.0,
+    "freeze_buildup": 1,
+    "freeze_duration": 0,
+    "slow_while_freezing": 0.5,
+    "sprite": "freeze_ray.png",
+    "projectile_sprite": "ice_beam.png",
+    "sound_fire": "freeze_beam.wav",
+    "sound_hit": "ice_impact.wav",
+    "description": "Rapid-fire ice beam - each hit adds a freeze stack (up to 10 stacks = 90% slow)"
+}

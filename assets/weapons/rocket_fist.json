@@ -1,0 +1,14 @@
+{
+    "name": "Rocket Fist",
+    "type": "melee",
+    "damage": 35,
+    "knockback_force": 40.0,
+    "range": 4.0,
+    "attack_rate_seconds": 1.2,
+    "dash_distance": 10.0,
+    "dash_damage": 25,
+    "sprite": "rocket_fist.png",
+    "sound_hit": "rocket_punch.wav",
+    "sound_swing": "rocket_boost.wav",
+    "description": "Rocket-powered punch that dashes forward 10m, dealing damage along the way"
+}

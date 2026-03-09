@@ -1,0 +1,22 @@
+{
+    "name": "Time Gun",
+    "type": "projectile",
+    "damage": 8,
+    "knockback_force": 3.0,
+    "range": 60.0,
+    "attack_rate_seconds": 1.2,
+    "projectile_speed": 50.0,
+    "projectile_lifetime_seconds": 1.5,
+    "ammo": 6,
+    "spread_degrees": 0.0,
+    "slow_effect": 0,
+    "slow_duration": 0,
+    "time_slow_factor": 0.05,
+    "time_slow_duration": 3.0,
+    "time_slow_radius": 2.5,
+    "sprite": "time_gun.png",
+    "projectile_sprite": "time_orb.png",
+    "sound_fire": "time_distortion.wav",
+    "sound_hit": "time_slow.wav",
+    "description": "Shoots time orb that creates a small time-stop zone on impact"
+}

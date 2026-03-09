@@ -1,0 +1,23 @@
+{
+    "name": "Cluster Launcher",
+    "type": "explosive",
+    "damage": 35,
+    "knockback_force": 18.0,
+    "range": 25.0,
+    "attack_rate_seconds": 2.0,
+    "projectile_speed": 18.0,
+    "projectile_lifetime_seconds": 3.0,
+    "explosion_radius": 3.5,
+    "ammo": 3,
+    "affected_by_gravity": true,
+    "grenade_charge": "frag",
+    "grenade_casing": "ballistic",
+    "frag_child_count": 4,
+    "frag_child_damage": 15.0,
+    "frag_child_radius": 1.8,
+    "sprite": "",
+    "projectile_sprite": "",
+    "sound_fire": "",
+    "sound_explode": "",
+    "description": "Explodes on impact and scatters 4 cluster bomblets in all directions"
+}

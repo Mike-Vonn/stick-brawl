@@ -1,0 +1,23 @@
+{
+    "name": "Freeze Mine",
+    "type": "explosive",
+    "damage": 10,
+    "knockback_force": 3.0,
+    "range": 15.0,
+    "attack_rate_seconds": 1.5,
+    "projectile_speed": 14.0,
+    "projectile_lifetime_seconds": 3.0,
+    "explosion_radius": 4.5,
+    "ammo": 4,
+    "affected_by_gravity": true,
+    "grenade_charge": "freeze",
+    "grenade_casing": "mine",
+    "mine_proximity": 1.8,
+    "freeze_buildup": 12,
+    "freeze_duration": 0,
+    "sprite": "",
+    "projectile_sprite": "",
+    "sound_fire": "",
+    "sound_explode": "",
+    "description": "Place an icy trap on the ground — freezes anyone who steps near it"
+}

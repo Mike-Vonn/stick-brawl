@@ -1,0 +1,14 @@
+{
+    "name": "Chain Whip",
+    "type": "melee",
+    "damage": 20,
+    "knockback_force": 8.0,
+    "range": 5.0,
+    "attack_rate_seconds": 0.7,
+    "pull_force": 15.0,
+    "can_pull_enemies": true,
+    "sprite": "chain_whip.png",
+    "sound_hit": "whip_crack.wav",
+    "sound_swing": "chain_swing.wav",
+    "description": "Long-range whip that can pull enemies toward you on hit"
+}

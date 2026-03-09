@@ -1,0 +1,19 @@
+{
+    "name": "Shotgun",
+    "type": "projectile",
+    "damage": 8,
+    "knockback_force": 12.0,
+    "range": 1.0,
+    "attack_rate_seconds": 0.9,
+    "projectile_speed": 18.0,
+    "projectile_lifetime_seconds": 0.4,
+    "ammo": 6,
+    "spread_degrees": 25,
+    "pellet_count": 7,
+    "affected_by_gravity": false,
+    "env_damage_radius": 0.5,
+    "sprite": "",
+    "sound_fire": "",
+    "sound_hit": "",
+    "description": "Devastating at close range. Fires 7 pellets in a wide spread pattern."
+}

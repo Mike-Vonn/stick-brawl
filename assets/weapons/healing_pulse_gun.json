@@ -1,0 +1,20 @@
+{
+    "name": "Healing Pulse Gun",
+    "type": "projectile",
+    "damage": -25,
+    "knockback_force": 2.0,
+    "range": 40.0,
+    "attack_rate_seconds": 2.0,
+    "projectile_speed": 35.0,
+    "projectile_lifetime_seconds": 1.5,
+    "ammo": 5,
+    "spread_degrees": 3.0,
+    "healing_radius": 6.0,
+    "heal_over_time": 15.0,
+    "heal_duration": 3.0,
+    "sprite": "healing_gun.png",
+    "projectile_sprite": "health_orb.png",
+    "sound_fire": "heal_pulse.wav",
+    "sound_hit": "health_restore.wav",
+    "description": "Heals 25 HP on impact, then 15 HP/s for 3s in 6m radius. Can heal allies!"
+}

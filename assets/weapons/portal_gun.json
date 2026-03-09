@@ -1,0 +1,19 @@
+{
+    "name": "Portal Gun",
+    "type": "projectile",
+    "damage": 0,
+    "knockback_force": 0.0,
+    "range": 18.0,
+    "attack_rate_seconds": 0.8,
+    "projectile_speed": 60.0,
+    "projectile_lifetime_seconds": 2.0,
+    "ammo": 2,
+    "spread_degrees": 0.0,
+    "portal_duration": 15.0,
+    "portal_link_distance": 100.0,
+    "sprite": "portal_gun.png",
+    "projectile_sprite": "portal_projectile.png",
+    "sound_fire": "portal_shoot.wav",
+    "sound_hit": "portal_open.wav",
+    "description": "Creates linked portals - enter one, exit the other! 2 shots to make a pair"
+}

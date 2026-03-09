@@ -1,0 +1,21 @@
+{
+    "name": "Meteor Shower Staff",
+    "type": "explosive",
+    "damage": 30,
+    "knockback_force": 15.0,
+    "range": 12.0,
+    "attack_rate_seconds": 4.0,
+    "projectile_speed": 0.0,
+    "projectile_lifetime_seconds": 0.0,
+    "explosion_radius": 3.0,
+    "ammo": 3,
+    "affected_by_gravity": true,
+    "meteor_count": 8,
+    "meteor_spread_radius": 12.0,
+    "meteor_delay": 0.3,
+    "sprite": "meteor_staff.png",
+    "projectile_sprite": "meteor.png",
+    "sound_fire": "staff_channel.wav",
+    "sound_explode": "meteor_impact.wav",
+    "description": "Calls down 8 meteors in target area over 2.4 seconds"
+}

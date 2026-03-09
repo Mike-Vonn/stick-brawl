@@ -1,0 +1,21 @@
+{
+    "name": "Lightning Staff",
+    "type": "projectile",
+    "damage": 15,
+    "knockback_force": 12.0,
+    "range": 55.0,
+    "attack_rate_seconds": 0.4,
+    "projectile_speed": 80.0,
+    "projectile_lifetime_seconds": 0.8,
+    "ammo": 20,
+    "spread_degrees": 0.0,
+    "chain_targets": 3,
+    "chain_range": 10.0,
+    "chain_damage_falloff": 0.7,
+    "stun_duration": 0.5,
+    "sprite": "lightning_staff.png",
+    "projectile_sprite": "lightning_bolt.png",
+    "sound_fire": "lightning_zap.wav",
+    "sound_hit": "electric_shock.wav",
+    "description": "Electric staff that chains to 3 nearby enemies, stunning briefly"
+}

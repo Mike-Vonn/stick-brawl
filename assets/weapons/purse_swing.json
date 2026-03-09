@@ -1,0 +1,12 @@
+{
+    "name": "Purse Swing",
+    "type": "melee",
+    "damage": 22,
+    "knockback_force": 15.0,
+    "range": 2.0,
+    "attack_rate_seconds": 0.5,
+    "env_damage_radius": 0.25,
+    "sprite": "",
+    "sound_hit": "",
+    "description": "A devastating designer handbag loaded with who-knows-what. High knockback!"
+}

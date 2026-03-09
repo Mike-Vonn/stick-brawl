@@ -1,0 +1,19 @@
+{
+    "name": "Mind Control Staff",
+    "type": "projectile",
+    "damage": 0,
+    "knockback_force": 0.0,
+    "range": 40.0,
+    "attack_rate_seconds": 5.0,
+    "projectile_speed": 40.0,
+    "projectile_lifetime_seconds": 1.5,
+    "ammo": 2,
+    "spread_degrees": 0.0,
+    "mind_control_duration": 8.0,
+    "control_breaks_on_damage": true,
+    "sprite": "mind_control_staff.png",
+    "projectile_sprite": "mind_beam.png",
+    "sound_fire": "psychic_pulse.wav",
+    "sound_hit": "mind_control.wav",
+    "description": "Take control of an enemy for 8 seconds - they fight for you! Breaks if damaged"
+}

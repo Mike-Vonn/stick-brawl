@@ -1,0 +1,23 @@
+{
+    "name": "Grappling Hook",
+    "type": "projectile",
+    "damage": 5,
+    "knockback_force": 2.0,
+    "range": 30.0,
+    "attack_rate_seconds": 0.3,
+    "projectile_speed": 50.0,
+    "projectile_lifetime_seconds": 0.8,
+    "ammo": -1,
+    "spread_degrees": 0.0,
+    "is_grapple": true,
+    "grapple_retract_speed": 12.0,
+    "grapple_extend_speed": 8.0,
+    "grapple_swing_force": 65.0,
+    "grapple_max_length": 15.0,
+    "grapple_min_length": 1.5,
+    "grapple_slingshot_force": 60.0,
+    "spawn_weight": 5,
+    "throwable": true,
+    "throw_damage": 25,
+    "description": "Shoots a grappling hook. Up/Down to retract/extend, Left/Right to swing. Attack to release, Throw to slingshot!"
+}

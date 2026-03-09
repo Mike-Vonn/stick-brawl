@@ -1,0 +1,17 @@
+{
+    "name": "Energy Shield",
+    "type": "melee",
+    "damage": 15,
+    "knockback_force": 12.0,
+    "range": 1.8,
+    "attack_rate_seconds": 0.8,
+    "blocks_projectiles": true,
+    "block_angle": 120.0,
+    "reflects_projectiles": true,
+    "damage_reduction": 0.7,
+    "sprite": "energy_shield.png",
+    "sound_hit": "shield_bash.wav",
+    "sound_swing": "shield_raise.wav",
+    "sound_block": "shield_reflect.wav",
+    "description": "Defensive shield that blocks and reflects projectiles, reduces damage by 70%"
+}

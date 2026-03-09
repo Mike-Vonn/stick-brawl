@@ -1,0 +1,21 @@
+{
+    "name": "Shrink Ray",
+    "type": "projectile",
+    "damage": 5,
+    "knockback_force": 1.0,
+    "range": 45.0,
+    "attack_rate_seconds": 1.0,
+    "projectile_speed": 45.0,
+    "projectile_lifetime_seconds": 1.5,
+    "ammo": 8,
+    "spread_degrees": 0.0,
+    "shrink_scale": 0.5,
+    "shrink_duration": 6.0,
+    "damage_reduction": 0.5,
+    "speed_increase": 1.3,
+    "sprite": "shrink_ray.png",
+    "projectile_sprite": "shrink_beam.png",
+    "sound_fire": "shrink_zap.wav",
+    "sound_hit": "shrink_effect.wav",
+    "description": "Shrinks enemies to 50% size for 6s - they move faster but deal less damage"
+}

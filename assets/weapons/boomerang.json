@@ -1,0 +1,19 @@
+{
+    "name": "Boomerang",
+    "type": "projectile",
+    "damage": 18,
+    "knockback_force": 6.0,
+    "range": 30.0,
+    "attack_rate_seconds": 1.5,
+    "projectile_speed": 30.0,
+    "projectile_lifetime_seconds": 3.0,
+    "ammo": -1,
+    "spread_degrees": 0.0,
+    "returns_to_sender": true,
+    "hits_multiple_times": true,
+    "sprite": "boomerang.png",
+    "projectile_sprite": "boomerang_spin.png",
+    "sound_fire": "boomerang_throw.wav",
+    "sound_hit": "boomerang_hit.wav",
+    "description": "Throwable weapon that returns to sender, can hit enemies multiple times"
+}

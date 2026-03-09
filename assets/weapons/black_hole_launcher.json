@@ -1,0 +1,22 @@
+{
+    "name": "Black Hole Launcher",
+    "type": "explosive",
+    "damage": 10,
+    "knockback_force": 0.0,
+    "range": 10.0,
+    "attack_rate_seconds": 3.5,
+    "projectile_speed": 18.0,
+    "projectile_lifetime_seconds": 2.0,
+    "explosion_radius": 0.0,
+    "ammo": 2,
+    "affected_by_gravity": true,
+    "black_hole_duration": 5.0,
+    "black_hole_pull_force": 40,
+    "black_hole_radius": 10.0,
+    "damage_per_second": 25,
+    "sprite": "black_hole_launcher.png",
+    "projectile_sprite": "singularity.png",
+    "sound_fire": "void_launch.wav",
+    "sound_explode": "black_hole_active.wav",
+    "description": "Creates a gravity well that pulls enemies in, dealing 12 DPS for 5 seconds"
+}

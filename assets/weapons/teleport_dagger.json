@@ -1,0 +1,15 @@
+{
+    "name": "Teleport Dagger",
+    "type": "melee",
+    "damage": 25,
+    "knockback_force": 5.0,
+    "range": 2.0,
+    "attack_rate_seconds": 0.3,
+    "teleport_distance": 8.0,
+    "teleport_cooldown": 3.0,
+    "sprite": "teleport_dagger.png",
+    "sound_hit": "dagger_hit.wav",
+    "sound_swing": "dagger_swing.wav",
+    "sound_teleport": "teleport.wav",
+    "description": "Swift dagger that allows short-range teleportation (8m, 3s cooldown)"
+}

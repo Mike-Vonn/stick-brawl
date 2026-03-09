@@ -1,0 +1,22 @@
+{
+    "name": "Tornado Launcher",
+    "type": "explosive",
+    "damage": 8,
+    "knockback_force": 5.0,
+    "range": 35.0,
+    "attack_rate_seconds": 3.0,
+    "projectile_speed": 12.0,
+    "projectile_lifetime_seconds": 8.0,
+    "explosion_radius": 0.0,
+    "ammo": 2,
+    "affected_by_gravity": false,
+    "tornado_lift_force": 20.0,
+    "tornado_spin_force": 15.0,
+    "tornado_radius": 4.0,
+    "damage_per_second": 10,
+    "sprite": "tornado_launcher.png",
+    "projectile_sprite": "tornado.png",
+    "sound_fire": "wind_howl.wav",
+    "sound_explode": "tornado_active.wav",
+    "description": "Creates moving tornado that lifts and spins enemies, dealing 10 DPS for 8 seconds"
+}

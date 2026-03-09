@@ -1,0 +1,20 @@
+{
+    "name": "Bouncy Ball Launcher",
+    "type": "projectile",
+    "damage": 12,
+    "knockback_force": 4.0,
+    "range": 60.0,
+    "attack_rate_seconds": 0.5,
+    "projectile_speed": 35.0,
+    "projectile_lifetime_seconds": 6.0,
+    "ammo": 15,
+    "spread_degrees": 8.0,
+    "affected_by_gravity": true,
+    "bounces": 10,
+    "bounce_energy_retention": 0.9,
+    "sprite": "bouncy_launcher.png",
+    "projectile_sprite": "bouncy_ball.png",
+    "sound_fire": "ball_launch.wav",
+    "sound_hit": "boing.wav",
+    "description": "Fires super-bouncy balls that ricochet around the arena up to 10 times"
+}

@@ -1,0 +1,15 @@
+{
+    "name": "Gravity Hammer",
+    "type": "melee",
+    "damage": 40,
+    "knockback_force": 35.0,
+    "range": 3.0,
+    "attack_rate_seconds": 1.8,
+    "shockwave_radius": 6.0,
+    "shockwave_damage": 20,
+    "shockwave_force": 20.0,
+    "sprite": "gravity_hammer.png",
+    "sound_hit": "gravity_slam.wav",
+    "sound_swing": "hammer_swing.wav",
+    "description": "Massive hammer that creates devastating shockwave on impact"
+}

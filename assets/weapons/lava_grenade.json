@@ -1,0 +1,20 @@
+{
+    "name": "Lava Grenade",
+    "type": "explosive",
+    "damage": 35,
+    "knockback_force": 18.0,
+    "range": 25.0,
+    "attack_rate_seconds": 1.8,
+    "projectile_speed": 14.0,
+    "projectile_lifetime_seconds": 3.0,
+    "explosion_radius": 3.5,
+    "ammo": 3,
+    "affected_by_gravity": true,
+    "grenade_charge": "lava",
+    "grenade_casing": "normal",
+    "lava_damage_per_second": 15.0,
+    "lava_pool_radius": 3.0,
+    "lava_pool_duration": 4.0,
+    "lava_drop_count": 6,
+    "description": "Explodes and spews burning lava, leaving a pool of fire"
+}

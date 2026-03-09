@@ -1,0 +1,20 @@
+{
+    "name": "Bounce Laser",
+    "type": "projectile",
+    "damage": 18,
+    "knockback_force": 4.0,
+    "range": 40.0,
+    "attack_rate_seconds": 0.35,
+    "projectile_speed": 50.0,
+    "projectile_lifetime_seconds": 5.0,
+    "ammo": 12,
+    "spread_degrees": 0.0,
+    "affected_by_gravity": false,
+    "bounces": 8,
+    "bounce_energy_retention": 1.0,
+    "sprite": "bounce_laser.png",
+    "projectile_sprite": "laser_beam.png",
+    "sound_fire": "laser_fire.wav",
+    "sound_hit": "laser_hit.wav",
+    "description": "Fast laser that bounces off walls, platforms, and screen edges up to 8 times"
+}

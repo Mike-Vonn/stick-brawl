@@ -1,0 +1,20 @@
+{
+    "name": "Frag Grenade",
+    "type": "explosive",
+    "damage": 30,
+    "knockback_force": 20.0,
+    "range": 25.0,
+    "attack_rate_seconds": 1.5,
+    "projectile_speed": 15.0,
+    "projectile_lifetime_seconds": 3.0,
+    "explosion_radius": 3.5,
+    "ammo": 3,
+    "affected_by_gravity": true,
+    "grenade_charge": "frag",
+    "grenade_casing": "normal",
+    "frag_child_count": 4,
+    "frag_child_damage": 20.0,
+    "frag_child_radius": 2.0,
+    "frag_child_speed": 12.0,
+    "description": "Explodes then splits into 4 smaller grenades"
+}
