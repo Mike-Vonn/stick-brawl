@@ -1027,7 +1027,6 @@ void Game::spawnProjectile(StickFigure& shooter) {
         proj.bodyId = bullet;
         proj.weapon = weapon;
         proj.ownerIndex = shooter.getPlayerIndex();
-        proj.ownerDamageMultiplier = shooter.getDamageMultiplier();
         proj.lifetime = weapon.projectileLifetime;
         proj.alive = true;
 
@@ -1105,7 +1104,7 @@ void Game::updateProjectiles(float dt) {
                     player->takeDamage(5.0f, 0.0f, 0.0f);
                     player->applyPoison(proj.poisonDps, proj.poisonDuration);
                 } else {
-                    float dmg = proj.weapon.damage * rules.damageMultiplier * proj.ownerDamageMultiplier;
+                    float dmg = proj.weapon.damage * rules.damageMultiplier;
                     if (isExplosive && proj.weapon.explosionRadius > 0.0f) {
                         float falloff = 1.0f - (dist / proj.weapon.explosionRadius);
                         dmg *= std::max(0.3f, falloff);
@@ -1140,7 +1139,7 @@ void Game::updateProjectiles(float dt) {
                     float dx = pp.x - plp.x, dy = pp.y - plp.y;
                     float dist = std::sqrt(dx * dx + dy * dy);
                     if (dist < hitR) {
-                        float dmg = proj.weapon.damage * rules.damageMultiplier * proj.ownerDamageMultiplier;
+                        float dmg = proj.weapon.damage * rules.damageMultiplier;
                         float falloff = 1.0f - (dist / proj.weapon.explosionRadius);
                         dmg *= std::max(0.3f, falloff);
                         float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;

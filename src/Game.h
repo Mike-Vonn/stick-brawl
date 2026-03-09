@@ -22,7 +22,6 @@ struct Projectile {
     bool isPoison = false;
     float poisonDps = 0.0f;
     float poisonDuration = 0.0f;
-    float ownerDamageMultiplier = 1.0f;
 };
 
 struct WeaponPickup {
