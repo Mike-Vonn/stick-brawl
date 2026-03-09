@@ -20,6 +20,9 @@ struct Platform {
     float cx, cy;
     bool alive = true;
     PlatformType type = PlatformType::Ground;
+    bool onFire = false;
+    float fireTimer = 0.0f;
+    static constexpr float BURN_DURATION = 5.0f;
 };
 
 class Arena {
@@ -38,6 +41,11 @@ public:
     // Worms-style terrain carving: removes a circular chunk from all platforms
     // Returns number of platforms affected
     int carveCircle(Physics& physics, float cx, float cy, float radius);
+
+    void ignitePlatform(size_t index);
+    void updateFire(Physics& physics, float dt);
+    bool isFlammable(PlatformType type) const;
+    int getBurningPlatformAt(float x, float y) const;
 
     static int getLevelCount();
     static std::string getLevelName(int index);

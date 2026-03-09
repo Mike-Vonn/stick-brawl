@@ -2,6 +2,7 @@
 #include "Physics.h"
 #include "Weapon.h"
 #include <SFML/Graphics.hpp>
+#include <vector>
 
 struct StickFigureConfig {
     float bodyHeight = 1.8f;
@@ -22,11 +23,13 @@ enum class CharacterType {
     Cobra,
     Unicorn,
     Crocodile,
-    StickLady
+    StickLady,
+    Dragon,
+    MrDiaperPants
 };
 
 // Number of available character types
-constexpr int CHARACTER_TYPE_COUNT = 11;
+constexpr int CHARACTER_TYPE_COUNT = 13;
 
 inline const char* characterTypeName(CharacterType t) {
     switch (t) {
@@ -41,6 +44,8 @@ inline const char* characterTypeName(CharacterType t) {
         case CharacterType::Unicorn:   return "Unicorn";
         case CharacterType::Crocodile: return "Crocodile";
         case CharacterType::StickLady: return "Stick Lady";
+        case CharacterType::Dragon:    return "Dragon";
+        case CharacterType::MrDiaperPants: return "Mr Diaper-Pants";
     }
     return "???";
 }
@@ -87,15 +92,36 @@ public:
     void resetAim();
     float getAimAngle() const { return m_aimAngle; }
 
+    struct WeaponSlot { WeaponData weapon; int ammo = -1; };
+
     bool canAttack() const;
     void attack();
+    void setInnateWeapon(const WeaponData& weapon);
     void equipWeapon(const WeaponData& weapon);
-    const WeaponData& getCurrentWeapon() const { return m_weapon; }
-    int getAmmo() const { return m_currentAmmo; }
+    void equipWeapon(const WeaponData& weapon, int currentAmmo);
+    void switchWeapon();
+    std::vector<WeaponSlot> dropAllNonInnate();
+    const WeaponData& getCurrentWeapon() const { return m_inventory[m_activeWeapon].weapon; }
+    int getAmmo() const { return m_inventory[m_activeWeapon].ammo; }
+    int getInventorySize() const { return static_cast<int>(m_inventory.size()); }
+    int getActiveWeaponIndex() const { return m_activeWeapon; }
 
     void takeDamage(float amount, float knockbackX, float knockbackY);
+    void takeDamage(float amount, float knockbackX, float knockbackY,
+                    const std::string& weaponName, WeaponType weaponType,
+                    const std::string& deathAnim = "");
     void applyPoison(float dps, float duration);
+    void applyBurn(float dps, float duration);
+    void glide(float dt);
+    bool isGliding() const { return m_isGliding; }
     void respawn(float x, float y);
+
+    // Last weapon that dealt damage (for death animation selection)
+    const std::string& getLastDamageWeapon() const { return m_lastDamageWeapon; }
+    WeaponType getLastDamageWeaponType() const { return m_lastDamageWeaponType; }
+    const std::string& getLastDamageDeathAnim() const { return m_lastDamageDeathAnim; }
+    float getLastKnockbackX() const { return m_lastKnockbackX; }
+    float getLastKnockbackY() const { return m_lastKnockbackY; }
     void teleportTo(float x, float y); // preserves velocity (for wrap-around)
     void startRespawnTimer(float delay, float x, float y);
     bool isWaitingToRespawn() const { return m_waitingToRespawn; }
@@ -105,6 +131,7 @@ public:
     float getMaxHealth() const { return m_maxHealth; }
     bool  isAlive() const { return m_health > 0.0f; }
     bool  isPoisoned() const { return m_poisonTimer > 0.0f; }
+    bool  isBurning() const { return m_burnTimer > 0.0f; }
     int   getPlayerIndex() const { return m_playerIndex; }
     int   getLives() const { return m_lives; }
     void  setLives(int lives) { m_lives = lives; }
@@ -137,6 +164,8 @@ private:
     void drawUnicorn(sf::RenderTarget& target) const;
     void drawCrocodile(sf::RenderTarget& target) const;
     void drawStickLady(sf::RenderTarget& target) const;
+    void drawDragon(sf::RenderTarget& target) const;
+    void drawMrDiaperPants(sf::RenderTarget& target) const;
     void drawAttackEffect(sf::RenderTarget& target) const;
     void drawAimIndicator(sf::RenderTarget& target) const;
 
@@ -167,11 +196,22 @@ private:
     float m_poisonDps = 0.0f;
     float m_poisonTickTimer = 0.0f;
 
-    WeaponData m_weapon;
-    WeaponData m_innateWeapon;  // character's default weapon, restored on respawn
-    bool       m_hasInnateWeapon = false;
-    int        m_currentAmmo = -1;
+    // Burn DOT (fire)
+    float m_burnTimer = 0.0f;
+    float m_burnDps = 0.0f;
+    float m_burnTickTimer = 0.0f;
 
+    std::vector<WeaponSlot> m_inventory;  // slot 0 = innate weapon
+    int m_activeWeapon = 0;
+
+    // Last weapon that dealt the killing blow (for death animation selection)
+    std::string m_lastDamageWeapon;
+    WeaponType  m_lastDamageWeaponType = WeaponType::Melee;
+    std::string m_lastDamageDeathAnim;
+    float       m_lastKnockbackX = 0.0f;
+    float       m_lastKnockbackY = 0.0f;
+
+    bool  m_isGliding = false;
     float m_moveSpeed = 8.0f;
     float m_jumpForce = 12.0f;
     float m_damageMultiplier = 1.0f;

@@ -13,6 +13,7 @@ struct PlayerInput {
     bool aimDown = false;
     bool jumpPressed = false;
     bool attackPressed = false;
+    bool swapPressed = false;
 };
 
 class Input {
@@ -29,9 +30,11 @@ private:
         sf::Keyboard::Key attack;
         sf::Keyboard::Key aimUp;
         sf::Keyboard::Key aimDown;
+        sf::Keyboard::Key swap;
     };
 
     std::array<KeyBinding, MAX_PLAYERS> m_keyBindings;
     std::array<bool, MAX_PLAYERS> m_prevJump = {};
     std::array<bool, MAX_PLAYERS> m_prevAttack = {};
+    std::array<bool, MAX_PLAYERS> m_prevSwap = {};
 };

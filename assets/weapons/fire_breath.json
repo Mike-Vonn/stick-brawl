@@ -1,0 +1,20 @@
+{
+    "name": "Fire Breath",
+    "type": "projectile",
+    "damage": 2,
+    "knockback_force": 3.0,
+    "range": 40.0,
+    "attack_rate_seconds": 0.08,
+    "projectile_speed": 22.0,
+    "projectile_lifetime_seconds": 0.6,
+    "ammo": -1,
+    "spread_degrees": 15,
+    "pellet_count": 2,
+    "affected_by_gravity": false,
+    "continuous": true,
+    "env_damage_radius": 0.1,
+    "burn_dps": 6.0,
+    "burn_duration": 3.0,
+    "death_anim": "incinerate",
+    "description": "Hold to project continuous flame. Ignites targets, terrain, and burns up weapons."
+}

@@ -35,8 +35,15 @@ struct WeaponData {
     float       poisonDps = 0.0f;
     float       poisonDuration = 0.0f;
 
-    // Spawning
-    bool        spawnable = false;  // can appear as a random pickup
+    // Burn (fire damage-over-time)
+    float       burnDps = 0.0f;
+    float       burnDuration = 0.0f;
+
+    // Continuous fire (hold attack to keep firing)
+    bool        continuous = false;
+
+    // Death animation override (dismember, disintegrate, incinerate, explode, collapse)
+    std::string deathAnim;
 
     // Assets
     std::string sprite;
