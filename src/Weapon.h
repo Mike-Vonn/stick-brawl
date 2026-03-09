@@ -42,6 +42,9 @@ struct WeaponData {
     // Continuous fire (hold attack to keep firing)
     bool        continuous = false;
 
+    // Spawning
+    bool        spawnable = false;  // can appear as a random pickup
+
     // Death animation override (dismember, disintegrate, incinerate, explode, collapse)
     std::string deathAnim;
 
