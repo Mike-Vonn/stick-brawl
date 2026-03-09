@@ -8,5 +8,6 @@
     "sprite": "katana.png",
     "sound_hit": "katana_hit.wav",
     "sound_swing": "katana_swing.wav",
+    "death_anim": "dismember",
     "description": "A swift blade with good range"
 }

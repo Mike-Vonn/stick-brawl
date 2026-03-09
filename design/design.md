@@ -39,6 +39,8 @@ Update order matters:
 ### Characters
 Seven types: Stick, Cat, Cobra, Unicorn, Crocodile, StickLady, Dragon. Each has a custom `draw*()` method. Some characters have innate weapons (Cobra=Poison Spit, Unicorn=Horn Blast, Crocodile=Jaw Snap, StickLady=Purse Swing, Dragon=Fire Breath). These innate weapons are excluded from random weapon spawns.
 
+**Dragon glide**: Dragon can glide by holding the jump button while airborne. Downward velocity is clamped to -2.0 m/s (slow fall). Wings spread wide with a gentle flap during glide. Uses the held `pi.jump` state (not `jumpPressed`) to detect hold.
+
 ### Weapons
 Loaded from JSON files in `assets/weapons/`. Three types:
 - **Melee** — range check + facing, instant damage
@@ -62,13 +64,16 @@ Destructible terrain via `Arena::carveCircle()`. Platforms are Box2D static bodi
 - Render with orange overlay + flickering flame particles
 
 ### Death Animation System
-`DeathAnimationSystem` manages post-death visual effects. Four types:
-- **Collapse** — stick figure tilts and falls over (melee, guns, falls)
+`DeathAnimationSystem` manages post-death visual effects. Five types:
+- **Collapse** — body tilts and falls over (melee, guns, falls)
 - **Dismember** — a body part (head/arm) detaches as a physics gib (blades)
 - **Explode** — body fragments into many physics gibs (explosives)
 - **Disintegrate** — particle cloud, no physics bodies (nuke)
+- **Incinerate** — charcoalizes (darkens to black), crumbles with ash particles, then skeleton collapses (fire/burn deaths)
 
-Death type is selected by `Game::getDeathAnimType()` based on the last weapon that dealt damage to the dying player. Weapon tracking is stored on `StickFigure` via the `takeDamage(amount, kbX, kbY, weaponName, weaponType)` overload.
+Death type is selected by `Game::getDeathAnimType()` based on the last weapon that dealt damage to the dying player. Weapon tracking is stored on `StickFigure` via the `takeDamage(amount, kbX, kbY, weaponName, weaponType)` overload. Burn DOT also sets the damage weapon to "Burn" on tick.
+
+**Body-plan awareness**: Collapse, Dismember, and Incinerate animations render character-appropriate body shapes via `BodyPlan` (Humanoid, Quadruped, Serpentine) derived from `CharacterType`. Each `DeathEffect` stores the dying character's type.
 
 ### Wrap-Around Mode
 Optional mode where players/projectiles wrap screen edges instead of dying from falls.

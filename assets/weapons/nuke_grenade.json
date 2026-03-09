@@ -15,5 +15,6 @@
     "projectile_sprite": "",
     "sound_fire": "",
     "sound_explode": "",
+    "death_anim": "disintegrate",
     "description": "A handheld nuclear device. Destroys everything — including the ground beneath your feet."
 }

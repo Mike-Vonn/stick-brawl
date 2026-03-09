@@ -14,5 +14,6 @@
     "env_damage_radius": 0.1,
     "burn_dps": 6.0,
     "burn_duration": 3.0,
+    "death_anim": "incinerate",
     "description": "Cone of fire that ignites targets (6 DPS for 3 seconds)"
 }

@@ -39,6 +39,7 @@ WeaponData loadWeaponFromFile(const std::string& path) {
         if (j.contains("poison_duration"))              w.poisonDuration = j["poison_duration"];
         if (j.contains("burn_dps"))                     w.burnDps = j["burn_dps"];
         if (j.contains("burn_duration"))                w.burnDuration = j["burn_duration"];
+        if (j.contains("death_anim"))                   w.deathAnim = j["death_anim"];
         if (j.contains("sprite"))                       w.sprite = j["sprite"];
         if (j.contains("projectile_sprite"))            w.projectileSprite = j["projectile_sprite"];
         if (j.contains("sound_hit"))                    w.soundHit = j["sound_hit"];

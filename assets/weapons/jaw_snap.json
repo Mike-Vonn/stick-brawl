@@ -9,5 +9,6 @@
     "sprite": "",
     "sound_hit": "",
     "sound_swing": "",
+    "death_anim": "dismember",
     "description": "A devastating bite that crushes through armor and bone"
 }

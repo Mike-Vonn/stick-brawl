@@ -6,6 +6,209 @@
 #include <sstream>
 #include <optional>
 
+static constexpr float PI = 3.14159265f;
+
+// ─── Weapon pickup icon drawing ──────────────────────────────────────
+static void drawWeaponIcon(sf::RenderTarget& target, const std::string& name,
+                           sf::Vector2f pos, float timer) {
+    auto drawLine = [&](sf::Vector2f a, sf::Vector2f b, sf::Color c) {
+        sf::VertexArray line(sf::PrimitiveType::Lines, 2);
+        line[0] = sf::Vertex{a, c};
+        line[1] = sf::Vertex{b, c};
+        target.draw(line);
+    };
+
+    float rot = timer * 20.0f; // gentle slow rotation in degrees
+    float gleam = std::sin(timer * 4.0f) * 0.3f + 0.7f; // pulsing brightness
+
+    if (name == "Katana") {
+        // Blade: long thin angled rectangle
+        sf::Color blade(220, 230, 255, static_cast<uint8_t>(255 * gleam));
+        sf::Color handle(140, 90, 40);
+        sf::Color guard(200, 180, 100);
+
+        sf::RectangleShape bladeShape({22.0f, 3.0f});
+        bladeShape.setOrigin({11.0f, 1.5f});
+        bladeShape.setPosition({pos.x, pos.y - 2.0f});
+        bladeShape.setRotation(sf::degrees(-30.0f));
+        bladeShape.setFillColor(blade);
+        target.draw(bladeShape);
+
+        // Guard (small cross piece)
+        sf::RectangleShape guardShape({2.0f, 7.0f});
+        guardShape.setOrigin({1.0f, 3.5f});
+        guardShape.setPosition({pos.x - 6.0f, pos.y + 1.5f});
+        guardShape.setRotation(sf::degrees(-30.0f));
+        guardShape.setFillColor(guard);
+        target.draw(guardShape);
+
+        // Handle
+        sf::RectangleShape handleShape({8.0f, 3.0f});
+        handleShape.setOrigin({8.0f, 1.5f});
+        handleShape.setPosition({pos.x - 7.0f, pos.y + 2.0f});
+        handleShape.setRotation(sf::degrees(-30.0f));
+        handleShape.setFillColor(handle);
+        target.draw(handleShape);
+    }
+    else if (name == "Pistol") {
+        // Gun silhouette: barrel + grip
+        sf::Color metal(120, 120, 130);
+        sf::Color outline(200, 200, 210);
+
+        // Barrel
+        sf::RectangleShape barrel({14.0f, 4.0f});
+        barrel.setOrigin({7.0f, 2.0f});
+        barrel.setPosition({pos.x + 2.0f, pos.y - 3.0f});
+        barrel.setFillColor(metal);
+        barrel.setOutlineColor(outline);
+        barrel.setOutlineThickness(0.5f);
+        target.draw(barrel);
+
+        // Grip
+        sf::RectangleShape grip({4.0f, 8.0f});
+        grip.setOrigin({2.0f, 0.0f});
+        grip.setPosition({pos.x - 2.0f, pos.y - 1.0f});
+        grip.setFillColor(metal);
+        grip.setOutlineColor(outline);
+        grip.setOutlineThickness(0.5f);
+        target.draw(grip);
+
+        // Trigger guard (small arc)
+        sf::CircleShape trigGuard(3.0f);
+        trigGuard.setOrigin({3.0f, 3.0f});
+        trigGuard.setPosition({pos.x + 1.0f, pos.y + 2.0f});
+        trigGuard.setFillColor(sf::Color::Transparent);
+        trigGuard.setOutlineColor(outline);
+        trigGuard.setOutlineThickness(0.5f);
+        target.draw(trigGuard);
+    }
+    else if (name == "Shotgun") {
+        // Longer barrel + stock
+        sf::Color metal(100, 100, 110);
+        sf::Color wood(140, 95, 50);
+        sf::Color outline(180, 180, 190);
+
+        // Long barrel
+        sf::RectangleShape barrel({22.0f, 4.0f});
+        barrel.setOrigin({11.0f, 2.0f});
+        barrel.setPosition({pos.x + 3.0f, pos.y - 2.0f});
+        barrel.setFillColor(metal);
+        barrel.setOutlineColor(outline);
+        barrel.setOutlineThickness(0.5f);
+        target.draw(barrel);
+
+        // Wide muzzle end
+        sf::RectangleShape muzzle({3.0f, 6.0f});
+        muzzle.setOrigin({1.5f, 3.0f});
+        muzzle.setPosition({pos.x + 14.0f, pos.y - 2.0f});
+        muzzle.setFillColor(metal);
+        target.draw(muzzle);
+
+        // Stock
+        sf::RectangleShape stock({10.0f, 5.0f});
+        stock.setOrigin({10.0f, 2.0f});
+        stock.setPosition({pos.x - 8.0f, pos.y - 1.0f});
+        stock.setFillColor(wood);
+        stock.setOutlineColor(outline);
+        stock.setOutlineThickness(0.5f);
+        target.draw(stock);
+
+        // Grip
+        sf::RectangleShape grip({3.0f, 6.0f});
+        grip.setOrigin({1.5f, 0.0f});
+        grip.setPosition({pos.x - 2.0f, pos.y});
+        grip.setFillColor(wood);
+        target.draw(grip);
+    }
+    else if (name == "Grenade Launcher") {
+        // Tube + grenade at tip
+        sf::Color tube(80, 100, 60);     // military green
+        sf::Color grenade(100, 110, 70);
+        sf::Color outline(140, 160, 100);
+
+        // Tube body
+        sf::RectangleShape body({20.0f, 5.0f});
+        body.setOrigin({10.0f, 2.5f});
+        body.setPosition(pos);
+        body.setFillColor(tube);
+        body.setOutlineColor(outline);
+        body.setOutlineThickness(0.5f);
+        target.draw(body);
+
+        // Grenade (circle at muzzle)
+        sf::CircleShape gren(4.0f);
+        gren.setOrigin({4.0f, 4.0f});
+        gren.setPosition({pos.x + 13.0f, pos.y});
+        gren.setFillColor(grenade);
+        gren.setOutlineColor(outline);
+        gren.setOutlineThickness(0.5f);
+        target.draw(gren);
+
+        // Grip
+        sf::RectangleShape grip({3.0f, 6.0f});
+        grip.setOrigin({1.5f, 0.0f});
+        grip.setPosition({pos.x - 3.0f, pos.y + 2.5f});
+        grip.setFillColor(tube);
+        target.draw(grip);
+    }
+    else if (name == "Nuclear Hand Grenade") {
+        // Glowing circle with radiation symbol
+        uint8_t glowA = static_cast<uint8_t>(80 * gleam);
+        sf::Color glow(180, 255, 50, glowA);
+        sf::Color shell(80, 80, 80);
+        sf::Color radColor(255, 220, 0);
+
+        // Glow aura
+        sf::CircleShape aura(12.0f);
+        aura.setOrigin({12.0f, 12.0f});
+        aura.setPosition(pos);
+        aura.setFillColor(glow);
+        target.draw(aura);
+
+        // Grenade body
+        sf::CircleShape body(7.0f);
+        body.setOrigin({7.0f, 7.0f});
+        body.setPosition(pos);
+        body.setFillColor(shell);
+        body.setOutlineColor(sf::Color(160, 160, 160));
+        body.setOutlineThickness(1.0f);
+        target.draw(body);
+
+        // Radiation trefoil: 3 lines from center
+        for (int i = 0; i < 3; i++) {
+            float angle = static_cast<float>(i) * 2.094f + timer * 0.5f; // 120° apart, slow spin
+            float ex = pos.x + std::cos(angle) * 5.0f;
+            float ey = pos.y + std::sin(angle) * 5.0f;
+            drawLine(pos, {ex, ey}, radColor);
+
+            // Small wedge dot at end
+            sf::CircleShape dot(1.5f);
+            dot.setOrigin({1.5f, 1.5f});
+            dot.setPosition({ex, ey});
+            dot.setFillColor(radColor);
+            target.draw(dot);
+        }
+
+        // Center dot
+        sf::CircleShape center(2.0f);
+        center.setOrigin({2.0f, 2.0f});
+        center.setPosition(pos);
+        center.setFillColor(radColor);
+        target.draw(center);
+    }
+    else {
+        // Fallback: generic gold box (for any future weapons)
+        sf::RectangleShape box({16.0f, 16.0f});
+        box.setOrigin({8.0f, 8.0f});
+        box.setPosition(pos);
+        box.setFillColor(sf::Color(255, 200, 50, 200));
+        box.setOutlineColor(sf::Color::White);
+        box.setOutlineThickness(1.0f);
+        box.setRotation(sf::degrees(timer * 60.0f));
+        target.draw(box);
+    }
+}
+
 Game::Game() = default;
 Game::~Game() = default;
 
@@ -766,6 +969,7 @@ void Game::processEvents() {
         if (const auto* k = event->getIf<sf::Event::KeyPressed>()) {
             if (k->code == sf::Keyboard::Key::Escape) m_renderer.getWindow().close();
             if (k->code == sf::Keyboard::Key::R && m_state == GameState::RoundOver) {
+                m_deathAnims.cleanupAll(m_physics);
                 const auto& spawns = m_arena.getSpawnPoints();
                 for (size_t i = 0; i < m_players.size(); i++)
                     m_players[i]->respawn(spawns[i].x, spawns[i].y);
@@ -775,6 +979,7 @@ void Game::processEvents() {
             }
             // Return to character select
             if (k->code == sf::Keyboard::Key::Backspace && m_state == GameState::RoundOver) {
+                m_deathAnims.cleanupAll(m_physics);
                 m_state = GameState::CharSelect;
                 for (auto& ps : m_selectState) { ps.ready = false; }
             }
@@ -824,6 +1029,11 @@ void Game::handlePlayerInput(float dt) {
 
         if (pi.jumpPressed) player->jump();
 
+        // Dragon glide: hold jump while airborne
+        if (pi.jump && !pi.jumpPressed && player->getCharacterType() == CharacterType::Dragon) {
+            player->glide(dt);
+        }
+
         // Aiming
         if (pi.aimUp) player->aimUp();
         else if (pi.aimDown) player->aimDown();
@@ -861,7 +1071,7 @@ void Game::handleMeleeAttack(StickFigure& attacker) {
             float dmg = weapon.damage * rules.damageMultiplier;
             float kbX = weapon.knockbackForce * dir * rules.knockbackMultiplier;
             float kbY = weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
-            target->takeDamage(dmg, kbX, kbY, weapon.name, weapon.type);
+            target->takeDamage(dmg, kbX, kbY, weapon.name, weapon.type, weapon.deathAnim);
         }
     }
 
@@ -880,7 +1090,7 @@ void Game::spawnProjectile(StickFigure& shooter) {
     b2Vec2 pos = shooter.getPosition();
     float dir = static_cast<float>(shooter.getFacingDirection());
     float baseAim = shooter.getAimAngle();
-    float spreadRad = weapon.spreadDegrees * 3.14159f / 180.0f;
+    float spreadRad = weapon.spreadDegrees * PI / 180.0f;
 
     static std::mt19937 rng(std::random_device{}());
 
@@ -1023,7 +1233,7 @@ void Game::updateProjectiles(float dt) {
                     float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
                     float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
                     float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
-                    player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type);
+                    player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type, proj.weapon.deathAnim);
                     player->applyBurn(proj.burnDps, proj.burnDuration);
                 } else if (proj.isPoison) {
                     player->takeDamage(5.0f, 0.0f, 0.0f, "Poison Spit", WeaponType::Projectile);
@@ -1037,7 +1247,7 @@ void Game::updateProjectiles(float dt) {
                     float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
                     float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
                     float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
-                    player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type);
+                    player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type, proj.weapon.deathAnim);
                 }
 
                 if (!isExplosive) {
@@ -1070,7 +1280,7 @@ void Game::updateProjectiles(float dt) {
                         float kbDir = (plp.x > pp.x) ? 1.0f : -1.0f;
                         float kbX = proj.weapon.knockbackForce * kbDir * rules.knockbackMultiplier;
                         float kbY = proj.weapon.knockbackForce * 0.5f * rules.knockbackMultiplier;
-                        player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type);
+                        player->takeDamage(dmg, kbX, kbY, proj.weapon.name, proj.weapon.type, proj.weapon.deathAnim);
                     }
                 }
             }
@@ -1199,22 +1409,21 @@ void Game::checkFallDeath() {
 }
 
 DeathAnimType Game::getDeathAnimType(const StickFigure& player) const {
-    const std::string& weapon = player.getLastDamageWeapon();
+    const std::string& da = player.getLastDamageDeathAnim();
     WeaponType wtype = player.getLastDamageWeaponType();
 
-    // Katana and blade-type melee → dismemberment
-    if (weapon == "Katana" || weapon == "Jaw Snap")
-        return DeathAnimType::Dismember;
+    // Use weapon's death_anim tag if set
+    if (da == "dismember")    return DeathAnimType::Dismember;
+    if (da == "disintegrate") return DeathAnimType::Disintegrate;
+    if (da == "incinerate")   return DeathAnimType::Incinerate;
+    if (da == "explode")      return DeathAnimType::Explode;
+    if (da == "collapse")     return DeathAnimType::Collapse;
 
-    // Nuke → disintegrate
-    if (weapon == "Nuclear Hand Grenade")
-        return DeathAnimType::Disintegrate;
-
-    // Other explosives → explode into pieces
+    // Fallback: explosive weapons explode
     if (wtype == WeaponType::Explosive)
         return DeathAnimType::Explode;
 
-    // Everything else (fists, guns, falls, poison, etc.) → collapse
+    // Default
     return DeathAnimType::Collapse;
 }
 
@@ -1222,13 +1431,16 @@ void Game::checkPlayerDeaths() {
     const auto& rules = m_rulesEngine.getRules();
     const auto& spawns = m_arena.getSpawnPoints();
 
+    // Ensure m_wasAlive is always sized to match players
+    if (m_wasAlive.size() < m_players.size())
+        m_wasAlive.resize(m_players.size(), true);
+
     for (size_t i = 0; i < m_players.size(); i++) {
         auto& player = m_players[i];
         bool aliveNow = player->isAlive();
 
         // Detect death transition: was alive last frame, dead now
-        if (i < m_wasAlive.size() && m_wasAlive[i] && !aliveNow
-            && !player->isWaitingToRespawn()) {
+        if (m_wasAlive[i] && !aliveNow && !player->isWaitingToRespawn()) {
 
             b2Vec2 pos = player->getPosition();
 
@@ -1237,6 +1449,7 @@ void Game::checkPlayerDeaths() {
                 DeathAnimType animType = getDeathAnimType(*player);
                 m_deathAnims.spawnDeath(m_physics, animType,
                     pos.x, pos.y, player->getColor(), player->getPlayerIndex(),
+                    player->getCharacterType(),
                     player->getLastKnockbackX(), player->getLastKnockbackY());
             }
 
@@ -1249,8 +1462,7 @@ void Game::checkPlayerDeaths() {
             }
         }
 
-        if (i < m_wasAlive.size())
-            m_wasAlive[i] = aliveNow;
+        m_wasAlive[i] = aliveNow;
     }
 }
 
@@ -1261,6 +1473,7 @@ void Game::checkRoundEnd() {
     }
     if (alive <= 1) {
         m_state = GameState::RoundOver;
+        m_deathAnims.cleanupAll(m_physics);
         if (last >= 0) std::cout << "Player " << last << " wins!\n";
         else std::cout << "Draw!\n";
     }
@@ -1270,32 +1483,14 @@ void Game::render() {
     m_renderer.clear(sf::Color(25, 25, 30));
     m_arena.draw(m_renderer.getWindow());
 
-    // Draw weapon pickups
+    // Draw weapon pickups with unique icons
     for (const auto& pickup : m_pickups) {
         if (!pickup.alive) continue;
         float bob = std::sin(pickup.bobTimer * 3.0f) * 3.0f;
         sf::Vector2f sp = {SCREEN_CX + pickup.position.x * PPM,
                            SCREEN_CY - pickup.position.y * PPM + bob};
 
-        sf::RectangleShape box({16.0f, 16.0f});
-        box.setOrigin({8.0f, 8.0f});
-        box.setPosition(sp);
-        box.setFillColor(sf::Color(255, 200, 50, 200));
-        box.setOutlineColor(sf::Color::White);
-        box.setOutlineThickness(1.0f);
-        box.setRotation(sf::degrees(pickup.bobTimer * 60.0f));
-        m_renderer.getWindow().draw(box);
-
-        sf::CircleShape indicator(3.0f);
-        indicator.setOrigin({3.0f, 3.0f});
-        indicator.setPosition({sp.x, sp.y - 12.0f});
-        if (pickup.weapon.type == WeaponType::Melee)
-            indicator.setFillColor(sf::Color::Red);
-        else if (pickup.weapon.type == WeaponType::Explosive)
-            indicator.setFillColor(sf::Color(255, 100, 0));
-        else
-            indicator.setFillColor(sf::Color::Cyan);
-        m_renderer.getWindow().draw(indicator);
+        drawWeaponIcon(m_renderer.getWindow(), pickup.weapon.name, sp, pickup.bobTimer);
     }
 
     for (const auto& p : m_players) p->draw(m_renderer.getWindow());

@@ -2,6 +2,9 @@
 #include <cmath>
 #include <iostream>
 
+static constexpr float PI = 3.14159265f;
+static constexpr float TWO_PI = 6.28318530f;
+
 static sf::Vector2f toScreen(b2Vec2 pos) {
     return {SCREEN_CX + pos.x * PPM, SCREEN_CY - pos.y * PPM};
 }
@@ -120,6 +123,18 @@ void StickFigure::jump() {
     }
 }
 
+void StickFigure::glide(float dt) {
+    if (m_charType != CharacterType::Dragon) return;
+    if (isOnGround()) return;
+
+    b2Vec2 v = b2Body_GetLinearVelocity(m_torso);
+    // Clamp downward velocity to slow fall
+    if (v.y < -2.0f) {
+        b2Body_SetLinearVelocity(m_torso, {v.x, -2.0f});
+    }
+    m_isGliding = true;
+}
+
 void StickFigure::aimUp()    { m_aimAngle = std::min(m_aimAngle + 0.05f,  1.2f); }
 void StickFigure::aimDown()  { m_aimAngle = std::max(m_aimAngle - 0.05f, -1.2f); }
 void StickFigure::resetAim() { m_aimAngle *= 0.9f; } // slowly return to center
@@ -151,9 +166,11 @@ void StickFigure::takeDamage(float amount, float knockbackX, float knockbackY) {
 }
 
 void StickFigure::takeDamage(float amount, float knockbackX, float knockbackY,
-                              const std::string& weaponName, WeaponType weaponType) {
+                              const std::string& weaponName, WeaponType weaponType,
+                              const std::string& deathAnim) {
     m_lastDamageWeapon = weaponName;
     m_lastDamageWeaponType = weaponType;
+    m_lastDamageDeathAnim = deathAnim;
     takeDamage(amount, knockbackX, knockbackY);
 }
 
@@ -235,6 +252,7 @@ void StickFigure::teleportTo(float x, float y) {
 }
 
 void StickFigure::update(float dt) {
+    m_isGliding = false; // reset each frame; set by glide() if actively gliding
     if (m_attackCooldown > 0.0f) m_attackCooldown -= dt;
     if (m_attackAnimTimer > 0.0f) m_attackAnimTimer -= dt;
     if (m_damageFlashTimer > 0.0f) m_damageFlashTimer -= dt;
@@ -269,6 +287,10 @@ void StickFigure::update(float dt) {
             m_burnTickTimer -= 0.5f;
             m_health -= m_burnDps * 0.5f;
             if (m_health < 0.0f) m_health = 0.0f;
+            // Track burn as damage source for death animation selection
+            m_lastDamageWeapon = "Burn";
+            m_lastDamageWeaponType = WeaponType::Projectile;
+            m_lastDamageDeathAnim = "incinerate";
         }
     }
 }
@@ -450,7 +472,7 @@ void StickFigure::drawCobra(sf::RenderTarget& target) const {
     sf::VertexArray coilLine(sf::PrimitiveType::LineStrip, coilSegs + 1);
     for (int i = 0; i <= coilSegs; i++) {
         float frac = static_cast<float>(i) / static_cast<float>(coilSegs);
-        float angle = frac * coilLoops * 2.0f * 3.14159f;
+        float angle = frac * coilLoops * 2.0f * PI;
         // Shrink radius toward the center to look like a real coil
         float rScale = 1.0f - frac * 0.3f;
         float wiggle = std::sin(t * wiggleSpeed + frac * 8.0f) * wiggleAmp * (1.0f - frac * 0.5f);
@@ -643,7 +665,7 @@ void StickFigure::drawUnicorn(sf::RenderTarget& target) const {
     float speed = std::sqrt(vel.x * vel.x);
     float legAnim = speed > 1.0f ? gallop * 6.0f : 0.0f;
     float legOffsets[4] = {-0.35f, -0.12f, 0.12f, 0.35f};
-    float legPhases[4] = {0.0f, 3.14159f, 0.0f, 3.14159f}; // diagonal pairs
+    float legPhases[4] = {0.0f, PI, 0.0f, PI}; // diagonal pairs
     for (int i = 0; i < 4; i++) {
         float lx = c.x + legOffsets[i] * 36.0f;
         float anim = speed > 1.0f ? std::sin(t * 8.0f + legPhases[i]) * 6.0f : 0.0f;
@@ -905,7 +927,7 @@ void StickFigure::drawCrocodile(sf::RenderTarget& target) const {
     // --- Legs (4 stubby legs) ---
     float legAnim = speed > 1.0f ? std::sin(t * 8.0f) * 4.0f : 0.0f;
     float legPositions[4] = {-0.30f, -0.10f, 0.15f, 0.35f};
-    float legPhases[4] = {0.0f, 3.14159f, 0.0f, 3.14159f};
+    float legPhases[4] = {0.0f, PI, 0.0f, PI};
     for (int i = 0; i < 4; i++) {
         float lx = c.x + dir * legPositions[i] * 45.0f;
         float anim = speed > 1.0f ? std::sin(t * 8.0f + legPhases[i]) * 4.0f : 0.0f;
@@ -933,7 +955,7 @@ void StickFigure::drawCrocodile(sf::RenderTarget& target) const {
     float jawOpen = 0.0f;
     if (m_attackAnimTimer > 0.0f) {
         float prog = m_attackAnimTimer / 0.2f;
-        jawOpen = std::sin(prog * 3.14159f) * 20.0f; // opens then snaps shut
+        jawOpen = std::sin(prog * PI) * 20.0f; // opens then snaps shut
     }
 
     // Upper jaw
@@ -1147,7 +1169,7 @@ void StickFigure::drawStickLady(sf::RenderTarget& target) const {
     float purseSwing = 0.0f;
     if (m_attackAnimTimer > 0.0f) {
         float prog = m_attackAnimTimer / 0.2f;
-        purseSwing = std::sin(prog * 3.14159f * 2.0f) * 30.0f; // wild swing
+        purseSwing = std::sin(prog * PI * 2.0f) * 30.0f; // wild swing
     }
     // Purse hangs from the forward arm
     b2Vec2 armPos = (dir > 0) ? b2Body_GetPosition(m_rightArm) : b2Body_GetPosition(m_leftArm);
@@ -1273,12 +1295,16 @@ void StickFigure::drawDragon(sf::RenderTarget& target) const {
 
     // --- Wings (bat-like, extending from upper back) ---
     float wingFlap = std::sin(t * 1.5f) * 0.15f; // gentle breathing fold
+    // When gliding, wings spread wide and flap gently
+    float wingSpread = m_isGliding ? 1.5f : 1.0f;
+    float wingLift = m_isGliding ? 12.0f : 0.0f;
+    float glideFlap = m_isGliding ? std::sin(t * 3.0f) * 3.0f : 0.0f;
     for (float side : {-1.0f, 1.0f}) {
         float wingBaseX = c.x - dir * 2.0f;
         float wingBaseY = c.y - 9.0f;
-        float wingTipX = wingBaseX + side * 28.0f;
-        float wingTipY = wingBaseY - 18.0f - wingFlap * 40.0f;
-        float wingMidX = wingBaseX + side * 20.0f;
+        float wingTipX = wingBaseX + side * 28.0f * wingSpread;
+        float wingTipY = wingBaseY - 18.0f - wingFlap * 40.0f - wingLift - glideFlap;
+        float wingMidX = wingBaseX + side * 20.0f * wingSpread;
         float wingMidY = wingBaseY - 5.0f;
 
         // Wing membrane
@@ -1446,7 +1472,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
     if (m_weapon.type == WeaponType::Melee && m_charType == CharacterType::StickLady) {
         // Purse swing attack — wide arc with purse trail
         float swingAngle = -120.0f + 240.0f * prog; // big swing arc
-        float swingRad = swingAngle * 3.14159f / 180.0f;
+        float swingRad = swingAngle * PI / 180.0f;
         float swingR = m_weapon.range * PPM * 0.5f;
         float purseX = sp.x + dir * std::cos(swingRad) * swingR;
         float purseY = sp.y - 5.0f + std::sin(swingRad) * swingR;
@@ -1457,7 +1483,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
             float trailProg = prog - static_cast<float>(i) * 0.04f;
             if (trailProg < 0.0f) continue;
             float ta = -120.0f + 240.0f * trailProg;
-            float tr = ta * 3.14159f / 180.0f;
+            float tr = ta * PI / 180.0f;
             float tx = sp.x + dir * std::cos(tr) * swingR;
             float ty = sp.y - 5.0f + std::sin(tr) * swingR;
             float sz = 2.0f * (1.0f - static_cast<float>(i) * 0.1f);
@@ -1533,7 +1559,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
         float arcR = m_weapon.range * PPM * 0.7f * prog;
         constexpr int particles = 12;
         for (int i = 0; i < particles; i++) {
-            float angle = static_cast<float>(i) / static_cast<float>(particles) * 6.28318f;
+            float angle = static_cast<float>(i) / static_cast<float>(particles) * TWO_PI;
             float px = sp.x + dir * 15.0f + std::cos(angle) * arcR;
             float py = sp.y - 15.0f + std::sin(angle) * arcR;
             float sz = 3.0f * (1.0f - prog);
@@ -1563,7 +1589,7 @@ void StickFigure::drawAttackEffect(sf::RenderTarget& target) const {
         for (int i = 0; i <= segs; i++) {
             float t = static_cast<float>(i) / static_cast<float>(segs);
             if (t > prog) break;
-            float angle = (-45.0f + 90.0f * t) * 3.14159f / 180.0f;
+            float angle = (-45.0f + 90.0f * t) * PI / 180.0f;
             float ax = sp.x + dir * std::cos(angle) * arcR;
             float ay = sp.y - std::sin(angle) * arcR;
             float ds = 3.0f * (1.0f - t * 0.5f);

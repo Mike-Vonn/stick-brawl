@@ -62,14 +62,18 @@ public:
 
     void takeDamage(float amount, float knockbackX, float knockbackY);
     void takeDamage(float amount, float knockbackX, float knockbackY,
-                    const std::string& weaponName, WeaponType weaponType);
+                    const std::string& weaponName, WeaponType weaponType,
+                    const std::string& deathAnim = "");
     void applyPoison(float dps, float duration);
     void applyBurn(float dps, float duration);
+    void glide(float dt);
+    bool isGliding() const { return m_isGliding; }
     void respawn(float x, float y);
 
     // Last weapon that dealt damage (for death animation selection)
     const std::string& getLastDamageWeapon() const { return m_lastDamageWeapon; }
     WeaponType getLastDamageWeaponType() const { return m_lastDamageWeaponType; }
+    const std::string& getLastDamageDeathAnim() const { return m_lastDamageDeathAnim; }
     float getLastKnockbackX() const { return m_lastKnockbackX; }
     float getLastKnockbackY() const { return m_lastKnockbackY; }
     void teleportTo(float x, float y); // preserves velocity (for wrap-around)
@@ -147,9 +151,11 @@ private:
     // Last weapon that dealt the killing blow (for death animation selection)
     std::string m_lastDamageWeapon;
     WeaponType  m_lastDamageWeaponType = WeaponType::Melee;
+    std::string m_lastDamageDeathAnim;
     float       m_lastKnockbackX = 0.0f;
     float       m_lastKnockbackY = 0.0f;
 
+    bool  m_isGliding = false;
     float m_moveSpeed = 8.0f;
     float m_jumpForce = 12.0f;
 

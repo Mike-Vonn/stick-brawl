@@ -39,6 +39,9 @@ struct WeaponData {
     float       burnDps = 0.0f;
     float       burnDuration = 0.0f;
 
+    // Death animation override (dismember, disintegrate, incinerate, explode, collapse)
+    std::string deathAnim;
+
     // Assets
     std::string sprite;
     std::string projectileSprite;
